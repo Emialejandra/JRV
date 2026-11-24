@@ -1,0 +1,214 @@
+<ion-header>
+    <ion-toolbar>
+        <ion-title>Gestión de recintos</ion-title>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+
+    <!-- Mensajes -->
+    <ion-text color="danger" *ngIf="mensajeError">
+        <p>{{ mensajeError }}</p>
+    </ion-text>
+
+    <ion-text color="success" *ngIf="mensajeExito">
+        <p>{{ mensajeExito }}</p>
+    </ion-text>
+
+    <!-- Cargando -->
+    <div class="ion-text-center" *ngIf="cargando">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Cargando recintos...</p>
+    </div>
+
+    <ng-container *ngIf="!cargando">
+        <ion-text color="danger" *ngIf="mensajeError">
+            <p>{{ mensajeError }}</p>
+        </ion-text>
+        
+        <!-- Filtros territoriales -->
+        <ion-card>
+            <ion-card-header>
+                <ion-card-title>Filtros territoriales</ion-card-title>
+            </ion-card-header>
+
+            <ion-card-content>
+
+                <ion-item>
+                    <ion-label position="stacked">Provincia</ion-label>
+                    <ion-select interface="popover" placeholder="Seleccionar provincia"
+                        [ngModel]="provinciaSeleccionada" (ngModelChange)="cambiarProvincia($event)">
+
+                        <ion-select-option *ngFor="let provincia of provincias" [value]="provincia.id">
+                            {{ provincia.nombre }}
+                        </ion-select-option>
+
+                    </ion-select>
+                </ion-item>
+
+                <ion-item>
+                    <ion-label position="stacked">Cantón</ion-label>
+                    <ion-select interface="popover" placeholder="Seleccionar cantón" [disabled]="!provinciaSeleccionada"
+                        [ngModel]="cantonSeleccionado" (ngModelChange)="cambiarCanton($event)">
+
+                        <ion-select-option *ngFor="let canton of cantones" [value]="canton.id">
+                            {{ canton.nombre }}
+                        </ion-select-option>
+
+                    </ion-select>
+                </ion-item>
+
+                <ion-item>
+                    <ion-label position="stacked">Parroquia</ion-label>
+                    <ion-select interface="popover" placeholder="Seleccionar parroquia" [disabled]="!cantonSeleccionado"
+                        [ngModel]="parroquiaSeleccionada" (ngModelChange)="cambiarParroquia($event)">
+
+                        <ion-select-option *ngFor="let parroquia of parroquiasDisponibles" [value]="parroquia.id">
+                            {{ parroquia.nombre }}
+                        </ion-select-option>
+
+                    </ion-select>
+                </ion-item>
+
+                <ion-note *ngIf="cargandoTerritorio">
+                    Cargando información territorial...
+                </ion-note>
+
+            </ion-card-content>
+        </ion-card>
+
+        <!-- Botón registrar -->
+        <ion-button expand="block" (click)="abrirFormulario()">
+            Registrar nuevo recinto
+        </ion-button>
+
+        <!-- Formulario -->
+        <ion-card *ngIf="mostrarFormulario">
+
+            <ion-card-header>
+                <ion-card-title>Nuevo recinto</ion-card-title>
+            </ion-card-header>
+
+            <ion-card-content>
+
+                <ion-item>
+                    <ion-input label="Nombre del recinto" labelPlacement="stacked" [(ngModel)]="nuevoRecinto.nombre"
+                        placeholder="Nombre del recinto">
+                    </ion-input>
+                </ion-item>
+
+                <ion-item>
+                    <ion-input label="Dirección" labelPlacement="stacked" [(ngModel)]="nuevoRecinto.direccion">
+                    </ion-input>
+                </ion-item>
+
+                <ion-item>
+                    <ion-input label="Referencia" labelPlacement="stacked" [(ngModel)]="nuevoRecinto.referencia">
+                    </ion-input>
+                </ion-item>
+
+                <ion-item>
+                    <ion-label position="stacked">Parroquia</ion-label>
+                    <ion-select placeholder="Seleccionar parroquia" [(ngModel)]="nuevoRecinto.parroquia_id"
+                        [disabled]="!cantonSeleccionado">
+
+                        <ion-select-option *ngFor="let parroquia of parroquiasDisponibles" [value]="parroquia.id">
+                            {{ parroquia.nombre }}
+                        </ion-select-option>
+
+                    </ion-select>
+                </ion-item>
+
+                <ion-item>
+                    <ion-input type="number" label="Capacidad de JRV" labelPlacement="stacked"
+                        [(ngModel)]="nuevoRecinto.capacidad_jrv">
+                    </ion-input>
+                </ion-item>
+
+                <ion-item>
+                    <ion-input type="number" label="Latitud" labelPlacement="stacked"
+                        [(ngModel)]="nuevoRecinto.latitud">
+                    </ion-input>
+                </ion-item>
+
+                <ion-item>
+                    <ion-input type="number" label="Longitud" labelPlacement="stacked"
+                        [(ngModel)]="nuevoRecinto.longitud">
+                    </ion-input>
+                </ion-item>
+
+                <ion-button expand="block" (click)="guardarRecinto()" [disabled]="guardando">
+
+                    <ion-spinner *ngIf="guardando"></ion-spinner>
+                    <span *ngIf="!guardando">Guardar recinto</span>
+
+                </ion-button>
+
+                <ion-button expand="block" fill="outline" color="medium" (click)="cancelarFormulario()"
+                    [disabled]="guardando">
+                    Cancelar
+                </ion-button>
+
+            </ion-card-content>
+        </ion-card>
+
+        <!-- Búsqueda -->
+        <ion-searchbar placeholder="Buscar recinto..." [(ngModel)]="busqueda">
+        </ion-searchbar>
+
+        <!-- Resultados -->
+        <ion-card>
+            <ion-card-header>
+                <ion-card-title>
+                    Recintos registrados
+                </ion-card-title>
+                <ion-note>
+                    Total: {{ recintosFiltrados.length }}
+                </ion-note>
+            </ion-card-header>
+
+            <ion-card-content>
+
+                <ion-text color="medium" *ngIf="recintosFiltrados.length === 0">
+                    <p>No se encontraron recintos.</p>
+                </ion-text>
+
+                <ion-card *ngFor="let recinto of recintosFiltrados">
+
+                    <ion-card-header>
+                        <ion-card-title>
+                            {{ recinto.nombre }}
+                        </ion-card-title>
+                    </ion-card-header>
+
+                    <ion-card-content>
+
+                        <p>
+                            <strong>Dirección:</strong>
+                            {{ recinto.direccion || 'No registrada' }}
+                        </p>
+
+                        <p>
+                            <strong>Referencia:</strong>
+                            {{ recinto.referencia || 'No registrada' }}
+                        </p>
+
+                        <p>
+                            <strong>Capacidad JRV:</strong>
+                            {{ recinto.capacidad_jrv ?? 'No especificada' }}
+                        </p>
+
+                        <ion-badge [color]="recinto.activo ? 'success' : 'medium'">
+                            {{ recinto.activo ? 'Activo' : 'Inactivo' }}
+                        </ion-badge>
+
+                    </ion-card-content>
+
+                </ion-card>
+
+            </ion-card-content>
+        </ion-card>
+
+    </ng-container>
+
+</ion-content>

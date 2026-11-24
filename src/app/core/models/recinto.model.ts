@@ -1,5 +1,5 @@
 export interface Recinto {
-  id: number;
+  id?: number;
   parroquia_id: number;
   nombre: string;
   direccion?: string;

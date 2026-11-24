@@ -1,0 +1,284 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Gestión de JRV</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+
+  <!-- Mensajes -->
+  <ion-text color="danger" *ngIf="mensajeError">
+    <p>{{ mensajeError }}</p>
+  </ion-text>
+
+  <ion-text color="success" *ngIf="mensajeExito">
+    <p>{{ mensajeExito }}</p>
+  </ion-text>
+
+  <!-- Cargando -->
+  <div class="ion-text-center ion-padding" *ngIf="cargando">
+    <ion-spinner name="crescent"></ion-spinner>
+
+    <p>
+      Cargando Juntas Receptoras del Voto...
+    </p>
+  </div>
+
+  <!-- Contenido -->
+  <ng-container *ngIf="!cargando">
+
+    <!-- Información del recinto -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>
+          Juntas Receptoras del Voto
+        </ion-card-title>
+      </ion-card-header>
+
+      <ion-card-content>
+
+        <p>
+          Administre las JRV correspondientes al
+          recinto asignado.
+        </p>
+
+        <p>
+          <strong>Recinto asignado:</strong>
+          {{ recintoId }}
+        </p>
+
+        <p>
+          <strong>Total de JRV:</strong>
+          {{ jrv.length }}
+        </p>
+
+        <ion-button
+          expand="block"
+          (click)="abrirFormulario()">
+          Registrar nueva JRV
+        </ion-button>
+
+      </ion-card-content>
+    </ion-card>
+
+
+    <!-- Formulario -->
+    <ion-card *ngIf="mostrarFormulario">
+
+      <ion-card-header>
+        <ion-card-title>
+          {{ editando ? 'Editar JRV' : 'Nueva JRV' }}
+        </ion-card-title>
+      </ion-card-header>
+
+      <ion-card-content>
+
+        <!-- Número -->
+        <ion-item>
+          <ion-input
+            type="number"
+            label="Número de JRV"
+            labelPlacement="stacked"
+            placeholder="Ejemplo: 2"
+            [(ngModel)]="nuevaJrv.numero">
+          </ion-input>
+        </ion-item>
+
+        <!-- Código -->
+        <ion-item>
+          <ion-input
+            label="Código"
+            labelPlacement="stacked"
+            placeholder="Ejemplo: JRV-002"
+            [(ngModel)]="nuevaJrv.codigo">
+          </ion-input>
+        </ion-item>
+
+        <!-- Tipo -->
+        <ion-item>
+          <ion-label position="stacked">
+            Tipo de JRV
+          </ion-label>
+
+          <ion-select
+            [(ngModel)]="nuevaJrv.tipo"
+            interface="popover">
+
+            <ion-select-option value="general">
+              General
+            </ion-select-option>
+
+            <ion-select-option value="preferente">
+              Preferente
+            </ion-select-option>
+
+          </ion-select>
+        </ion-item>
+
+        <!-- Estado -->
+        <ion-item>
+          <ion-label position="stacked">
+            Estado
+          </ion-label>
+
+          <ion-select
+            [(ngModel)]="nuevaJrv.estado"
+            interface="popover">
+
+            <ion-select-option value="pendiente">
+              Pendiente
+            </ion-select-option>
+
+            <ion-select-option value="asignada">
+              Asignada
+            </ion-select-option>
+
+            <ion-select-option value="procesada">
+              Procesada
+            </ion-select-option>
+
+            <ion-select-option value="cerrada">
+              Cerrada
+            </ion-select-option>
+
+          </ion-select>
+        </ion-item>
+
+        <!-- Guardar -->
+        <ion-button
+          expand="block"
+          (click)="guardarJrv()"
+          [disabled]="guardando">
+
+          <ion-spinner
+            *ngIf="guardando"
+            name="crescent">
+          </ion-spinner>
+
+          <span *ngIf="!guardando">
+            {{ editando ? 'Actualizar JRV' : 'Guardar JRV' }}
+          </span>
+
+        </ion-button>
+
+        <!-- Cancelar -->
+        <ion-button
+          expand="block"
+          fill="outline"
+          color="medium"
+          (click)="cancelarFormulario()"
+          [disabled]="guardando">
+
+          Cancelar
+
+        </ion-button>
+
+      </ion-card-content>
+
+    </ion-card>
+
+
+    <!-- Lista de JRV -->
+    <ion-card>
+
+      <ion-card-header>
+
+        <ion-card-title>
+          JRV registradas
+        </ion-card-title>
+
+        <ion-note>
+          Total: {{ jrv.length }}
+        </ion-note>
+
+      </ion-card-header>
+
+      <ion-card-content>
+
+        <!-- Sin registros -->
+        <ion-text
+          color="medium"
+          *ngIf="jrv.length === 0">
+
+          <p>
+            No existen JRV registradas para este recinto.
+          </p>
+
+        </ion-text>
+
+
+        <!-- Registros -->
+        <ion-card
+          *ngFor="let junta of jrv">
+
+          <ion-card-header>
+
+            <ion-card-title>
+              JRV {{ junta.numero }}
+            </ion-card-title>
+
+          </ion-card-header>
+
+
+          <ion-card-content>
+
+            <p>
+              <strong>ID:</strong>
+              {{ junta.id }}
+            </p>
+
+            <p>
+              <strong>Código:</strong>
+              {{ junta.codigo || 'No registrado' }}
+            </p>
+
+            <p>
+              <strong>Tipo:</strong>
+              {{ obtenerTextoTipo(junta.tipo) }}
+            </p>
+
+            <p>
+              <strong>Estado:</strong>
+            </p>
+
+            <ion-badge
+              [color]="obtenerColorEstado(junta.estado)">
+
+              {{ obtenerTextoEstado(junta.estado) }}
+
+            </ion-badge>
+
+
+            <!-- Acciones -->
+            <div class="acciones">
+
+              <ion-button
+                size="small"
+                (click)="editarJrv(junta)">
+
+                Editar
+
+              </ion-button>
+
+              <ion-button
+                size="small"
+                color="danger"
+                (click)="eliminarJrv(junta)">
+
+                Eliminar
+
+              </ion-button>
+
+            </div>
+
+          </ion-card-content>
+
+        </ion-card>
+
+      </ion-card-content>
+
+    </ion-card>
+
+  </ng-container>
+
+</ion-content>
