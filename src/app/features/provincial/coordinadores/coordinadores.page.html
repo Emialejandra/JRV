@@ -1,0 +1,127 @@
+
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Gestión de coordinadores</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Registrar coordinador de recinto</ion-card-title>
+    </ion-card-header>
+
+    <ion-card-content>
+
+      <p>
+        Registra los datos del coordinador y selecciona
+        el recinto que tendrá asignado.
+      </p>
+
+      <ion-item>
+        <ion-input
+          label="Nombres"
+          labelPlacement="stacked"
+          [(ngModel)]="coordinador.nombres"
+          placeholder="Ingrese los nombres">
+        </ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-input
+          label="Apellidos"
+          labelPlacement="stacked"
+          [(ngModel)]="coordinador.apellidos"
+          placeholder="Ingrese los apellidos">
+        </ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-input
+          label="Cédula"
+          labelPlacement="stacked"
+          type="text"
+          inputmode="numeric"
+          maxlength="10"
+          [(ngModel)]="coordinador.cedula"
+          placeholder="Ingrese los 10 dígitos">
+        </ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-input
+          label="Correo electrónico"
+          labelPlacement="stacked"
+          type="email"
+          [(ngModel)]="coordinador.email"
+          placeholder="ejemplo@correo.com">
+        </ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-input
+          label="Teléfono"
+          labelPlacement="stacked"
+          type="tel"
+          [(ngModel)]="coordinador.telefono"
+          placeholder="Teléfono de contacto">
+        </ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-select
+          label="Recinto electoral"
+          labelPlacement="stacked"
+          placeholder="Seleccione un recinto"
+          [(ngModel)]="coordinador.recinto_id">
+
+          <ion-select-option
+            *ngFor="let recinto of recintos"
+            [value]="recinto.id">
+            {{ recinto.nombre }}
+          </ion-select-option>
+
+        </ion-select>
+      </ion-item>
+
+      <div class="ion-padding-top" *ngIf="cargando">
+        <ion-spinner></ion-spinner>
+        <ion-text>Cargando recintos...</ion-text>
+      </div>
+
+      <div class="mensaje" *ngIf="mensaje">
+        <ion-text [color]="tipoMensaje">
+          {{ mensaje }}
+        </ion-text>
+      </div>
+
+      <ion-button
+        expand="block"
+        class="ion-margin-top"
+        (click)="crearCoordinador()"
+        [disabled]="guardando || cargando">
+
+        <ion-spinner
+          *ngIf="guardando"
+          name="crescent">
+        </ion-spinner>
+
+        <span *ngIf="!guardando">
+          Registrar coordinador
+        </span>
+      </ion-button>
+
+      <ion-button
+        expand="block"
+        fill="outline"
+        color="medium"
+        (click)="limpiarFormulario()"
+        [disabled]="guardando">
+        Limpiar formulario
+      </ion-button>
+
+    </ion-card-content>
+  </ion-card>
+
+</ion-content>
