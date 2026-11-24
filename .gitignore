@@ -82,3 +82,6 @@ Thumbs.db
 # Supabase environment files
 /src/environments/environment.ts
 /src/environments/environment.prod.ts
+
+# Supabase temp files
+supabase/.temp/

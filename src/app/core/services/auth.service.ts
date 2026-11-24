@@ -40,6 +40,7 @@ export class AuthService {
     cedula: string,
     password: string
   ) {
+
     const { data, error } =
       await this.supabaseService.client.functions.invoke(
         'login-cedula',
@@ -51,23 +52,30 @@ export class AuthService {
         }
       );
 
-    if (error || !data?.session) {
+    if (error) {
+      throw error;
+    }
+
+    if (
+      !data?.session?.access_token ||
+      !data?.session?.refresh_token
+    ) {
       throw new Error(
-        'Cédula o contraseña incorrectas, o usuario inactivo.'
+        'No se pudo obtener la sesión.'
       );
     }
 
-    const { data: sesion, error: errorSesion } =
+    const { data: sessionData, error: sessionError } =
       await this.supabaseService.client.auth.setSession({
         access_token: data.session.access_token,
         refresh_token: data.session.refresh_token
       });
 
-    if (errorSesion) {
-      throw errorSesion;
+    if (sessionError) {
+      throw sessionError;
     }
 
-    return sesion;
+    return sessionData;
   }
 
   async cerrarSesion() {

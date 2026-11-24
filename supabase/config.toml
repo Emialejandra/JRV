@@ -1,0 +1,2 @@
+[functions.login-cedula]
+verify_jwt = false
