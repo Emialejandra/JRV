@@ -1,0 +1,74 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Control Electoral</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+
+  <div class="login-container">
+
+    <h1>Iniciar sesión</h1>
+
+    <p>
+      Ingresa tus credenciales para acceder al sistema.
+    </p>
+
+    <form [formGroup]="formulario" (ngSubmit)="iniciarSesion()">
+
+      <ion-item>
+        <ion-input label="Cédula" labelPlacement="stacked" type="text" inputmode="numeric" maxlength="10"
+          formControlName="cedula" autocomplete="off">
+        </ion-input>
+      </ion-item>
+
+      <ion-text color="danger" *ngIf="
+    formulario.get('cedula')?.touched &&
+    formulario.get('cedula')?.invalid
+  ">
+        <p class="mensaje-validacion">
+          Ingresa una cédula de 10 dígitos.
+        </p>
+      </ion-text>
+
+      <ion-item>
+        <ion-input label="Contraseña" labelPlacement="stacked" type="password" formControlName="password"
+          autocomplete="current-password">
+        </ion-input>
+      </ion-item>
+
+      <ion-text color="danger" *ngIf="
+          formulario.get('password')?.touched &&
+          formulario.get('password')?.invalid
+        ">
+        <p class="mensaje-validacion">
+          La contraseña es obligatoria.
+        </p>
+      </ion-text>
+
+      <ion-button expand="block" type="submit" [disabled]="cargando">
+
+        <ion-spinner *ngIf="cargando" name="crescent">
+        </ion-spinner>
+
+        <span *ngIf="!cargando">
+          Iniciar sesión
+        </span>
+
+      </ion-button>
+
+    </form>
+
+    <ion-text color="danger" *ngIf="mensajeError">
+      <p class="mensaje-error">
+        {{ mensajeError }}
+      </p>
+    </ion-text>
+
+    <ion-button fill="clear" expand="block" (click)="irARecuperarPassword()">
+      ¿Olvidaste tu contraseña?
+    </ion-button>
+
+  </div>
+
+</ion-content>
