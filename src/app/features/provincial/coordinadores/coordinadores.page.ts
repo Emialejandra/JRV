@@ -1,5 +1,4 @@
-
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../../core/services/supabase.service';
@@ -15,13 +14,12 @@ import {
   IonCardTitle,
   IonCardContent,
   IonItem,
-  IonLabel,
   IonInput,
   IonSelect,
   IonSelectOption,
   IonButton,
   IonSpinner,
-  IonText
+  IonText,
 } from '@ionic/angular';
 
 interface Recinto {
@@ -45,18 +43,16 @@ interface Recinto {
     IonCardTitle,
     IonCardContent,
     IonItem,
-    IonLabel,
     IonInput,
     IonSelect,
     IonSelectOption,
     IonButton,
     IonSpinner,
-    IonText
+    IonText,
   ],
-  templateUrl: './coordinadores.page.html'
+  templateUrl: './coordinadores.page.html',
 })
 export class CoordinadoresPage implements OnInit {
-
   recintos: Recinto[] = [];
 
   cargando = false;
@@ -71,13 +67,14 @@ export class CoordinadoresPage implements OnInit {
     cedula: '',
     email: '',
     telefono: '',
-    recinto_id: null as number | null
+    recinto_id: null as number | null,
   };
 
   constructor(
     private supabaseService: SupabaseService,
-    private alertController: AlertController
-  ) { }
+    private alertController: AlertController,
+    private readonly cdr: ChangeDetectorRef,
+  ) {}
 
   ngOnInit() {
     this.cargarRecintos();
@@ -86,27 +83,24 @@ export class CoordinadoresPage implements OnInit {
   async cargarRecintos() {
     this.cargando = true;
     this.mensaje = '';
+    this.cdr.detectChanges();
 
     try {
-      const { data, error } =
-        await this.supabaseService.client
-          .from('recintos')
-          .select('id, nombre, direccion')
-          .eq('activo', true)
-          .order('nombre');
+      const { data, error } = await this.supabaseService.client
+        .from('recintos')
+        .select('id, nombre, direccion')
+        .eq('activo', true)
+        .order('nombre');
 
       if (error) throw error;
 
       this.recintos = data ?? [];
-
     } catch (error: any) {
       console.error('Error cargando recintos:', error);
-      this.mostrarMensaje(
-        'No se pudieron cargar los recintos. Verifica los permisos.',
-        'danger'
-      );
+      this.mostrarMensaje('No se pudieron cargar los recintos. Verifica los permisos.', 'danger');
     } finally {
       this.cargando = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -120,30 +114,24 @@ export class CoordinadoresPage implements OnInit {
       !this.coordinador.email.trim() ||
       !this.coordinador.recinto_id
     ) {
-      this.mostrarMensaje(
-        'Completa todos los campos obligatorios.',
-        'danger'
-      );
+      this.mostrarMensaje('Completa todos los campos obligatorios.', 'danger');
       return;
     }
 
     this.guardando = true;
+    this.cdr.detectChanges();
 
     try {
-      const { data, error } =
-        await this.supabaseService.client.functions.invoke(
-          'crear-coordinador',
-          {
-            body: {
-              nombres: this.coordinador.nombres,
-              apellidos: this.coordinador.apellidos,
-              cedula: this.coordinador.cedula,
-              email: this.coordinador.email,
-              telefono: this.coordinador.telefono,
-              recinto_id: this.coordinador.recinto_id
-            }
-          }
-        );
+      const { data, error } = await this.supabaseService.client.functions.invoke('crear-coordinador', {
+        body: {
+          nombres: this.coordinador.nombres,
+          apellidos: this.coordinador.apellidos,
+          cedula: this.coordinador.cedula,
+          email: this.coordinador.email,
+          telefono: this.coordinador.telefono,
+          recinto_id: this.coordinador.recinto_id,
+        },
+      });
 
       if (error) {
         let mensaje = error.message;
@@ -151,11 +139,7 @@ export class CoordinadoresPage implements OnInit {
         try {
           const respuesta = await error.context.json();
 
-          mensaje = [
-            respuesta?.error,
-            respuesta?.etapa,
-            respuesta?.detalle
-          ].filter(Boolean).join('\n');
+          mensaje = respuesta?.error?.message || respuesta?.error || error.message;
         } catch {
           mensaje = error.message;
         }
@@ -167,26 +151,18 @@ export class CoordinadoresPage implements OnInit {
         throw new Error('El servidor no devolvió una respuesta.');
       }
 
-      this.mostrarMensaje(
-        data?.mensaje || 'Coordinador registrado correctamente.',
-        'success'
-      );
+      this.mostrarMensaje(data?.data?.mensaje || 'Coordinador registrado correctamente.', 'success');
 
       this.limpiarFormulario();
-
     } catch (error: any) {
       console.error('Error creando coordinador:', error);
 
-      const mensaje =
-        error?.message ||
-        'Ocurrió un error inesperado al registrar el coordinador.';
+      const mensaje = error?.message || 'Ocurrió un error inesperado al registrar el coordinador.';
 
-      await this.mostrarAlerta(
-        'No se pudo registrar',
-        mensaje
-      );
+      await this.mostrarAlerta('No se pudo registrar', mensaje);
     } finally {
       this.guardando = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -197,26 +173,20 @@ export class CoordinadoresPage implements OnInit {
       cedula: '',
       email: '',
       telefono: '',
-      recinto_id: null
+      recinto_id: null,
     };
   }
 
-  mostrarMensaje(
-    mensaje: string,
-    tipo: 'success' | 'danger'
-  ) {
+  mostrarMensaje(mensaje: string, tipo: 'success' | 'danger') {
     this.mensaje = mensaje;
     this.tipoMensaje = tipo;
   }
 
-  async mostrarAlerta(
-    titulo: string,
-    mensaje: string
-  ) {
+  async mostrarAlerta(titulo: string, mensaje: string) {
     const alert = await this.alertController.create({
       header: titulo,
       message: mensaje,
-      buttons: ['Aceptar']
+      buttons: ['Aceptar'],
     });
 
     await alert.present();

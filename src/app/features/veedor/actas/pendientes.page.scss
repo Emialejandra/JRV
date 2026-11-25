@@ -1,0 +1,38 @@
+main {
+        max-width: 680px;
+        margin: 0 auto;
+        padding-bottom: 30px;
+      }
+      .eyebrow {
+        color: var(--ion-color-primary);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        margin: 10px 0;
+      }
+      h1 {
+        font-size: 28px;
+        font-weight: 800;
+        margin: 0;
+      }
+      .intro {
+        line-height: 1.5;
+        color: var(--ion-color-medium);
+      }
+      ion-card {
+        border-radius: 16px;
+        box-shadow: 0 4px 18px #172b4d0b;
+      }
+      .item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      .item p,
+      .item small {
+        display: block;
+        color: var(--ion-color-medium);
+        margin: 5px 0;
+        font-size: 12px;
+      }

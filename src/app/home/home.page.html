@@ -1,21 +1,42 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title> Blank </ion-title>
-  </ion-toolbar>
+<ion-header class="ion-no-border">
+  <ion-toolbar color="primary"><ion-title>Control Electoral</ion-title></ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>
-      Start with Ionic
-      <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a>
-    </p>
-  </div>
+<ion-content>
+  <main class="landing">
+    <section class="hero">
+      <div class="brand-mark" aria-hidden="true"><span>CE</span></div>
+      <p class="eyebrow">ESCRUTINIO · ECUADOR</p>
+      <h1>Información clara.<br /><em>En cada mesa.</em></h1>
+      <p class="lead">Plataforma de registro y seguimiento de actas para equipos electorales.</p>
+      <ion-button routerLink="/login" size="large" expand="block" class="enter-button"
+        >Ingresar al sistema <span aria-hidden="true">→</span></ion-button
+      >
+      <p class="access-note">Acceso habilitado para personal autorizado</p>
+    </section>
+    <section class="features" aria-label="Funciones de la aplicación">
+      <article>
+        <span class="feature-icon">01</span>
+        <div>
+          <strong>Registro organizado</strong>
+          <p>Captura resultados por dignidad y junta receptora.</p>
+        </div>
+      </article>
+      <article>
+        <span class="feature-icon">02</span>
+        <div>
+          <strong>Seguimiento oportuno</strong>
+          <p>Consulta el avance de actas de tu ámbito.</p>
+        </div>
+      </article>
+      <article>
+        <span class="feature-icon">03</span>
+        <div>
+          <strong>Control por roles</strong>
+          <p>Información disponible según tu responsabilidad.</p>
+        </div>
+      </article>
+    </section>
+    <footer>Plataforma de control electoral · Ecuador</footer>
+  </main>
 </ion-content>

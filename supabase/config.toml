@@ -1,2 +1,8 @@
 [functions.login-cedula]
 verify_jwt = false
+
+[functions.recuperar-password]
+verify_jwt = false
+
+[functions.cambiar-password]
+verify_jwt = false

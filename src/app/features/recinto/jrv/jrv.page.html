@@ -6,6 +6,12 @@
 
 <ion-content class="ion-padding">
 
+  <!-- Volver al dashboard -->
+  <ion-button expand="block" fill="outline" color="medium" (click)="volverDashboard()">
+    <ion-icon name="arrow-back-outline" slot="start"></ion-icon>
+    Volver al dashboard
+  </ion-button>
+
   <!-- Mensajes -->
   <ion-text color="danger" *ngIf="mensajeError">
     <p>{{ mensajeError }}</p>
@@ -52,9 +58,7 @@
           {{ jrv.length }}
         </p>
 
-        <ion-button
-          expand="block"
-          (click)="abrirFormulario()">
+        <ion-button expand="block" (click)="abrirFormulario()">
           Registrar nueva JRV
         </ion-button>
 
@@ -75,21 +79,14 @@
 
         <!-- Número -->
         <ion-item>
-          <ion-input
-            type="number"
-            label="Número de JRV"
-            labelPlacement="stacked"
-            placeholder="Ejemplo: 2"
+          <ion-input type="number" label="Número de JRV" labelPlacement="stacked" placeholder="Ejemplo: 2"
             [(ngModel)]="nuevaJrv.numero">
           </ion-input>
         </ion-item>
 
         <!-- Código -->
         <ion-item>
-          <ion-input
-            label="Código"
-            labelPlacement="stacked"
-            placeholder="Ejemplo: JRV-002"
+          <ion-input label="Código" labelPlacement="stacked" placeholder="Ejemplo: JRV-002"
             [(ngModel)]="nuevaJrv.codigo">
           </ion-input>
         </ion-item>
@@ -100,9 +97,7 @@
             Tipo de JRV
           </ion-label>
 
-          <ion-select
-            [(ngModel)]="nuevaJrv.tipo"
-            interface="popover">
+          <ion-select [(ngModel)]="nuevaJrv.tipo" interface="popover">
 
             <ion-select-option value="general">
               General
@@ -121,9 +116,7 @@
             Estado
           </ion-label>
 
-          <ion-select
-            [(ngModel)]="nuevaJrv.estado"
-            interface="popover">
+          <ion-select [(ngModel)]="nuevaJrv.estado" interface="popover">
 
             <ion-select-option value="pendiente">
               Pendiente
@@ -145,14 +138,9 @@
         </ion-item>
 
         <!-- Guardar -->
-        <ion-button
-          expand="block"
-          (click)="guardarJrv()"
-          [disabled]="guardando">
+        <ion-button expand="block" (click)="guardarJrv()" [disabled]="guardando">
 
-          <ion-spinner
-            *ngIf="guardando"
-            name="crescent">
+          <ion-spinner *ngIf="guardando" name="crescent">
           </ion-spinner>
 
           <span *ngIf="!guardando">
@@ -162,12 +150,7 @@
         </ion-button>
 
         <!-- Cancelar -->
-        <ion-button
-          expand="block"
-          fill="outline"
-          color="medium"
-          (click)="cancelarFormulario()"
-          [disabled]="guardando">
+        <ion-button expand="block" fill="outline" color="medium" (click)="cancelarFormulario()" [disabled]="guardando">
 
           Cancelar
 
@@ -196,9 +179,7 @@
       <ion-card-content>
 
         <!-- Sin registros -->
-        <ion-text
-          color="medium"
-          *ngIf="jrv.length === 0">
+        <ion-text color="medium" *ngIf="jrv.length === 0">
 
           <p>
             No existen JRV registradas para este recinto.
@@ -208,8 +189,7 @@
 
 
         <!-- Registros -->
-        <ion-card
-          *ngFor="let junta of jrv">
+        <ion-card *ngFor="let junta of jrv">
 
           <ion-card-header>
 
@@ -241,8 +221,7 @@
               <strong>Estado:</strong>
             </p>
 
-            <ion-badge
-              [color]="obtenerColorEstado(junta.estado)">
+            <ion-badge [color]="obtenerColorEstado(junta.estado)">
 
               {{ obtenerTextoEstado(junta.estado) }}
 
@@ -252,18 +231,13 @@
             <!-- Acciones -->
             <div class="acciones">
 
-              <ion-button
-                size="small"
-                (click)="editarJrv(junta)">
+              <ion-button size="small" (click)="editarJrv(junta)">
 
                 Editar
 
               </ion-button>
 
-              <ion-button
-                size="small"
-                color="danger"
-                (click)="eliminarJrv(junta)">
+              <ion-button size="small" color="danger" (click)="eliminarJrv(junta)">
 
                 Eliminar
 

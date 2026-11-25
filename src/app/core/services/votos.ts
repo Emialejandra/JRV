@@ -2,124 +2,49 @@ import { Injectable } from '@angular/core';
 import { SupabaseService } from './supabase.service';
 import { DetalleVoto } from '../models/detalle-voto.model';
 
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  error?: { message?: string };
+}
+
+interface ActaDetails {
+  detalle_votos: DetalleVoto[] | null;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class VotosService {
+  constructor(private supabaseService: SupabaseService) {}
 
-  constructor(
-    private supabaseService: SupabaseService
-  ) {}
+  async obtenerVotosPorActa(actaId: number): Promise<DetalleVoto[]> {
+    const acta = await this.invokeApi<ActaDetails>({
+      action: 'detalle',
+      acta_id: actaId,
+    });
 
-  async obtenerVotosPorActa(
-    actaId: number
-  ): Promise<DetalleVoto[]> {
-
-    const { data, error } =
-      await this.supabaseService.client
-        .from('detalle_votos')
-        .select(`
-          *,
-          candidaturas (
-            id,
-            nombres,
-            apellidos,
-            dignidad,
-            organizacion_id
-          )
-        `)
-        .eq('acta_id', actaId);
-
-    if (error) {
-      throw error;
-    }
-
-    return data ?? [];
+    return acta.detalle_votos ?? [];
   }
 
   async obtenerVoto(id: number): Promise<DetalleVoto> {
-
-    const { data, error } =
-      await this.supabaseService.client
-        .from('detalle_votos')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-    if (error) {
-      throw error;
-    }
-
-    return data;
+    return this.invokeApi<DetalleVoto>({
+      action: 'detalle_voto',
+      detalle_voto_id: id,
+    });
   }
 
-  async registrarVoto(
-    voto: Omit<DetalleVoto, 'id' | 'created_at'>
-  ) {
+  private async invokeApi<T>(body: Record<string, unknown>): Promise<T> {
+    const { data, error } = await this.supabaseService.client.functions.invoke<ApiResponse<T>>(
+      'actas-api',
+      { body },
+    );
 
-    const { data, error } =
-      await this.supabaseService.client
-        .from('detalle_votos')
-        .insert(voto)
-        .select()
-        .single();
-
-    if (error) {
-      throw error;
+    if (error) throw error;
+    if (!data?.success) {
+      throw new Error(data?.error?.message ?? 'No se pudo consultar el detalle de votos.');
     }
 
-    return data;
-  }
-
-  async registrarVotos(
-    votos: Omit<DetalleVoto, 'id' | 'created_at'>[]
-  ) {
-
-    const { data, error } =
-      await this.supabaseService.client
-        .from('detalle_votos')
-        .insert(votos)
-        .select();
-
-    if (error) {
-      throw error;
-    }
-
-    return data ?? [];
-  }
-
-  async actualizarVoto(
-    id: number,
-    cantidadVotos: number
-  ) {
-
-    const { data, error } =
-      await this.supabaseService.client
-        .from('detalle_votos')
-        .update({
-          cantidad_votos: cantidadVotos
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-    if (error) {
-      throw error;
-    }
-
-    return data;
-  }
-
-  async eliminarVoto(id: number) {
-
-    const { error } =
-      await this.supabaseService.client
-        .from('detalle_votos')
-        .delete()
-        .eq('id', id);
-
-    if (error) {
-      throw error;
-    }
+    return data.data;
   }
 }

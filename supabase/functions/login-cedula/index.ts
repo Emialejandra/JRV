@@ -1,140 +1,62 @@
-import { createClient } from
-    'npm:@supabase/supabase-js@2';
+import { createAdminClient, createPublicClient } from '../_shared/supabase.ts';
+import { ApiError, errorResponse, handleOptions, readJson, success } from '../_shared/http.ts';
+import { validateEcuadorianId } from '../_shared/validation.ts';
 
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers':
-        'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
-};
+Deno.serve(async (request) => {
+  const options = handleOptions(request);
+  if (options) return options;
 
-Deno.serve(async (req) => {
-
-    if (req.method === 'OPTIONS') {
-        return new Response('ok', {
-            headers: corsHeaders
-        });
+  try {
+    if (request.method !== 'POST') {
+      throw new ApiError(405, 'METHOD_NOT_ALLOWED', 'Usa POST para iniciar sesión.');
     }
 
-    const responder = (
-        body: object,
-        status = 200
-    ) => new Response(
-        JSON.stringify(body),
-        {
-            status,
-            headers: {
-                ...corsHeaders,
-                'Content-Type': 'application/json'
-            }
-        }
-    );
-
-    try {
-
-        const { cedula, password } = await req.json();
-
-        if (
-            typeof cedula !== 'string' ||
-            !/^\d{10}$/.test(cedula) ||
-            typeof password !== 'string' ||
-            !password
-        ) {
-            return responder({
-                error: 'Credenciales inválidas.'
-            }, 400);
-        }
-
-        const url = Deno.env.get('SUPABASE_URL')!;
-        const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-        const serviceKey = Deno.env.get(
-            'SUPABASE_SERVICE_ROLE_KEY'
-        )!;
-
-        // Cliente administrativo: solo funciona en el servidor.
-        const admin = createClient(
-            url,
-            serviceKey,
-            {
-                auth: {
-                    persistSession: false,
-                    autoRefreshToken: false
-                }
-            }
-        );
-
-        // Cliente público para autenticar al usuario.
-        const authClient = createClient(
-            url,
-            anonKey,
-            {
-                auth: {
-                    persistSession: false,
-                    autoRefreshToken: false
-                }
-            }
-        );
-
-        // Buscar el perfil por cédula.
-        const { data: perfil, error: errorPerfil } =
-            await admin
-                .from('perfiles')
-                .select('id, activo')
-                .eq('cedula', cedula)
-                .maybeSingle();
-
-        if (
-            errorPerfil ||
-            !perfil ||
-            !perfil.activo
-        ) {
-            return responder({
-                error: 'Credenciales inválidas.'
-            }, 401);
-        }
-
-        // Obtener el correo asociado al usuario de Auth.
-        const { data: usuario, error: errorUsuario } =
-            await admin.auth.admin.getUserById(
-                perfil.id
-            );
-
-        const email = usuario.user?.email;
-
-        if (errorUsuario || !email) {
-            return responder({
-                error: 'No se pudo validar el usuario.'
-            }, 401);
-        }
-
-        // Validar la contraseña con Supabase Auth.
-        const { data, error } =
-            await authClient.auth.signInWithPassword({
-                email,
-                password
-            });
-
-        if (error || !data.session) {
-            return responder({
-                error: 'Credenciales inválidas.'
-            }, 401);
-        }
-
-        return responder({
-            session: {
-                access_token: data.session.access_token,
-                refresh_token: data.session.refresh_token
-            }
-        });
-
-    } catch (error) {
-
-        console.error('Error de autenticación:', error);
-
-        return responder({
-            error: 'No fue posible iniciar sesión.'
-        }, 500);
-
+    const body = await readJson(request);
+    const cedula = validateEcuadorianId(body.cedula);
+    if (typeof body.password !== 'string' || body.password.length === 0 || body.password.length > 128) {
+      throw new ApiError(400, 'INVALID_CREDENTIALS', 'Las credenciales no son válidas.');
     }
 
+    const admin = createAdminClient();
+    const authClient = createPublicClient();
+    const { data: profile, error: profileError } = await admin
+      .from('perfiles')
+      .select('id, activo, primer_acceso, rol')
+      .eq('cedula', cedula)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+    if (!profile || profile.activo !== true) {
+      throw new ApiError(401, 'INVALID_CREDENTIALS', 'Las credenciales no son válidas.');
+    }
+
+    const { data: authUser, error: authUserError } = await admin.auth.admin.getUserById(profile.id);
+    if (authUserError || !authUser.user?.email) {
+      throw new ApiError(401, 'INVALID_CREDENTIALS', 'Las credenciales no son válidas.');
+    }
+
+    if (!authUser.user.email_confirmed_at) {
+      throw new ApiError(403, 'EMAIL_UNCONFIRMED', 'Confirma tu correo electrónico antes de iniciar sesión.');
+    }
+
+    const { data, error } = await authClient.auth.signInWithPassword({
+      email: authUser.user.email,
+      password: body.password,
+    });
+
+    if (error || !data.session) {
+      throw new ApiError(401, 'INVALID_CREDENTIALS', 'Las credenciales no son válidas.');
+    }
+
+    return success({
+      session: {
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      },
+      primer_acceso: profile.primer_acceso === true,
+      rol: profile.rol,
+    });
+  } catch (error) {
+    return errorResponse(error);
+  }
 });

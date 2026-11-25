@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 import {
   IonHeader,
@@ -20,7 +21,7 @@ import {
   IonText,
   IonBadge,
   IonLabel,
-  IonNote
+  IonNote, IonIcon
 } from '@ionic/angular';
 
 import { JrvService } from '../../../core/services/jrv.service';
@@ -53,12 +54,15 @@ import {
     IonText,
     IonNote,
     IonBadge,
-    IonLabel
+    IonLabel, IonIcon
   ],
   templateUrl: './jrv.page.html',
   styleUrls: ['./jrv.page.scss']
 })
 export class JrvPage implements OnInit {
+  volverDashboard() {
+    this.router.navigateByUrl('/recinto/dashboard');
+  }
 
   jrv: Jrv[] = [];
 
@@ -89,7 +93,8 @@ export class JrvPage implements OnInit {
 
   constructor(
     private jrvService: JrvService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private router: Router
   ) { }
 
   async ngOnInit(): Promise<void> {

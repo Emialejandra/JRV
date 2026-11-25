@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
+
+import type { Asignacion } from '../models/asignacion.model';
 import { SupabaseService } from './supabase.service';
-import { Asignacion } from '../models/asignacion.model';
 
 @Injectable({
   providedIn: 'root'
@@ -37,10 +38,12 @@ export class AsignacionesService {
           jrv (
             id,
             numero,
-            codigo
+            codigo,
+            estado
           )
         `)
         .eq('perfil_id', user.id)
+        .eq('tipo_asignacion', 'veedor')
         .eq('activo', true);
 
     if (error) {

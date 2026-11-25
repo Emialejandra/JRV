@@ -1,0 +1,128 @@
+     .page-shell {
+         max-width: 680px;
+         margin: 0 auto;
+         padding-bottom: 28px;
+     }
+
+     .eyebrow {
+         color: var(--ion-color-primary);
+         font-size: 11px;
+         font-weight: 800;
+         letter-spacing: 0.12em;
+         margin: 8px 0;
+     }
+
+     h1 {
+         margin: 0;
+         font-size: 28px;
+         font-weight: 800;
+     }
+
+     .intro {
+         color: var(--ion-color-medium);
+         line-height: 1.5;
+         margin: 8px 0 18px;
+     }
+
+     ion-card {
+         border-radius: 18px;
+         margin: 12px 0;
+         box-shadow: 0 4px 18px #172b4d0b;
+     }
+
+     ion-card-title {
+         font-size: 17px;
+     }
+
+     ion-item {
+         --padding-start: 0;
+         --inner-padding-end: 4px;
+     }
+
+     ion-item p {
+         color: var(--ion-color-medium);
+         font-size: 13px;
+         margin: 4px 0;
+     }
+
+     ion-input[slot='end'] {
+         max-width: 84px;
+         text-align: right;
+         font-size: 18px;
+         font-weight: 700;
+     }
+
+     .loading {
+         display: flex;
+         gap: 10px;
+         align-items: center;
+         padding: 14px 0;
+     }
+
+     .total-row {
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         padding: 16px 0 4px;
+         font-weight: 700;
+     }
+
+     .camera-control {
+         display: flex;
+         flex-direction: column;
+         align-items: center;
+         gap: 7px;
+         padding: 22px 12px;
+         margin: 4px 0 14px;
+         border: 1px dashed #a8b4c8;
+         border-radius: 16px;
+         text-align: center;
+         font-weight: 700;
+         color: var(--ion-color-primary);
+     }
+
+     .camera-control small {
+         font-size: 12px;
+         font-weight: 400;
+         color: var(--ion-color-medium);
+     }
+
+     .camera-icon {
+         width: 34px;
+         height: 34px;
+         display: grid;
+         place-items: center;
+         border-radius: 50%;
+         background: #e9f1ff;
+         font-size: 25px;
+     }
+
+     .visually-hidden {
+         position: absolute;
+         width: 1px;
+         height: 1px;
+         opacity: 0;
+         pointer-events: none;
+     }
+
+     .photo-preview {
+         width: 100%;
+         max-height: 360px;
+         object-fit: contain;
+         border-radius: 12px;
+         background: #f4f6f8;
+         margin: 0 0 12px;
+     }
+
+     .gps-note,
+     .fine-print {
+         text-align: center;
+         color: var(--ion-color-medium);
+         font-size: 12px;
+     }
+
+     .submit-button {
+         margin-top: 14px;
+         min-height: 50px;
+         font-weight: 700;
+     }

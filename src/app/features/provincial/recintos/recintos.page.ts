@@ -1,5 +1,5 @@
-
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, ElementRef, ViewChild } from '@angular/core';
+import * as L from 'leaflet';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -22,7 +22,7 @@ import {
   IonText,
   IonNote,
   IonInput,
-  IonButton
+  IonButton,
 } from '@ionic/angular';
 
 import { Recinto } from '../../../core/models/recinto.model';
@@ -57,12 +57,19 @@ import { TerritorioService } from '../../../core/services/territorio.service';
     IonText,
     IonNote,
     IonInput,
-    IonButton
+    IonButton,
   ],
   templateUrl: './recintos.page.html',
-  styleUrls: ['./recintos.page.scss']
+  styleUrls: ['./recintos.page.scss'],
 })
 export class RecintosPage implements OnInit {
+
+  @ViewChild('mapaUbicacion') mapaUbicacion?: ElementRef<HTMLDivElement>;
+
+  mostrarMapa = false;
+
+  private mapa: L.Map | null = null;
+  private marcador: L.CircleMarker | null = null;
 
   provincias: Provincia[] = [];
   cantones: Canton[] = [];
@@ -92,12 +99,13 @@ export class RecintosPage implements OnInit {
     parroquia_id: null as number | null,
     capacidad_jrv: null as number | null,
     latitud: null as number | null,
-    longitud: null as number | null
+    longitud: null as number | null,
   };
 
   constructor(
     private recintosService: RecintosService,
-    private territorioService: TerritorioService
+    private territorioService: TerritorioService,
+    private readonly cdr: ChangeDetectorRef,
   ) { }
 
   async ngOnInit(): Promise<void> {
@@ -108,10 +116,10 @@ export class RecintosPage implements OnInit {
   // CARGAR INFORMACIÓN INICIAL
   // ==========================================
 
-
   async cargarDatosIniciales(): Promise<void> {
     this.cargando = true;
     this.mensajeError = '';
+    this.cdr.detectChanges();
 
     console.log('Iniciando carga de recintos...');
 
@@ -134,25 +142,22 @@ export class RecintosPage implements OnInit {
 
       console.log('Recintos:', this.recintos);
       console.log('Total de recintos:', this.recintos.length);
-
     } catch (error: any) {
       console.error('Error cargando información:', error);
       this.mensajeError = error.message || 'No se pudo cargar la información.';
     } finally {
       this.cargando = false;
+      this.cdr.detectChanges();
 
       console.log('Estado final de cargando:', this.cargando);
       console.log('Carga finalizada.');
     }
   }
 
-
   // FILTROS TERRITORIALES
 
   async cambiarProvincia(valor: number | null): Promise<void> {
-
-    this.provinciaSeleccionada =
-      valor == null ? null : Number(valor);
+    this.provinciaSeleccionada = valor == null ? null : Number(valor);
 
     this.cantonSeleccionado = null;
     this.parroquiaSeleccionada = null;
@@ -167,46 +172,34 @@ export class RecintosPage implements OnInit {
     }
 
     this.cargandoTerritorio = true;
+    this.cdr.detectChanges();
 
     try {
-
-      this.cantones = await this.territorioService
-        .obtenerCantones(this.provinciaSeleccionada) as Canton[];
+      this.cantones = (await this.territorioService.obtenerCantones(this.provinciaSeleccionada)) as Canton[];
 
       const resultados = await Promise.all(
-        this.cantones.map(canton =>
-          this.territorioService.obtenerParroquias(canton.id)
-        )
+        this.cantones.map((canton) => this.territorioService.obtenerParroquias(canton.id)),
       );
 
       this.parroquias = resultados.flat() as Parroquia[];
-
     } catch (error: any) {
-
       console.error('Error al cargar territorio:', error);
 
-      this.mensajeError =
-        error?.message || 'No fue posible cargar los filtros territoriales.';
-
+      this.mensajeError = error?.message || 'No fue posible cargar los filtros territoriales.';
     } finally {
-
       this.cargandoTerritorio = false;
-
+      this.cdr.detectChanges();
     }
   }
 
   cambiarCanton(valor: number | null): void {
-
-    this.cantonSeleccionado =
-      valor == null ? null : Number(valor);
+    this.cantonSeleccionado = valor == null ? null : Number(valor);
 
     this.parroquiaSeleccionada = null;
   }
 
   cambiarParroquia(valor: number | null): void {
-
-    this.parroquiaSeleccionada =
-      valor == null ? null : Number(valor);
+    this.parroquiaSeleccionada = valor == null ? null : Number(valor);
   }
 
   // ==========================================
@@ -214,62 +207,37 @@ export class RecintosPage implements OnInit {
   // ==========================================
 
   get parroquiasDisponibles(): Parroquia[] {
-
     if (this.cantonSeleccionado === null) {
       return [];
     }
 
-    return this.parroquias.filter(
-      parroquia =>
-        Number(parroquia.canton_id) === this.cantonSeleccionado
-    );
+    return this.parroquias.filter((parroquia) => Number(parroquia.canton_id) === this.cantonSeleccionado);
   }
 
   get recintosFiltrados(): Recinto[] {
-
     let resultado = [...this.recintos];
 
     if (this.provinciaSeleccionada !== null) {
+      const idsParroquias = new Set(this.parroquias.map((parroquia) => Number(parroquia.id)));
 
-      const idsParroquias = new Set(
-        this.parroquias.map(parroquia => Number(parroquia.id))
-      );
-
-      resultado = resultado.filter(
-        recinto => idsParroquias.has(Number(recinto.parroquia_id))
-      );
+      resultado = resultado.filter((recinto) => idsParroquias.has(Number(recinto.parroquia_id)));
     }
 
     if (this.cantonSeleccionado !== null) {
+      const idsParroquias = new Set(this.parroquiasDisponibles.map((parroquia) => Number(parroquia.id)));
 
-      const idsParroquias = new Set(
-        this.parroquiasDisponibles.map(parroquia => Number(parroquia.id))
-      );
-
-      resultado = resultado.filter(
-        recinto => idsParroquias.has(Number(recinto.parroquia_id))
-      );
+      resultado = resultado.filter((recinto) => idsParroquias.has(Number(recinto.parroquia_id)));
     }
 
     if (this.parroquiaSeleccionada !== null) {
-
-      resultado = resultado.filter(
-        recinto =>
-          Number(recinto.parroquia_id) === this.parroquiaSeleccionada
-      );
+      resultado = resultado.filter((recinto) => Number(recinto.parroquia_id) === this.parroquiaSeleccionada);
     }
 
     const texto = this.busqueda.trim().toLowerCase();
 
     if (texto) {
-
-      resultado = resultado.filter(recinto => {
-
-        const contenido = [
-          recinto.nombre,
-          recinto.direccion ?? '',
-          recinto.referencia ?? ''
-        ].join(' ').toLowerCase();
+      resultado = resultado.filter((recinto) => {
+        const contenido = [recinto.nombre, recinto.direccion ?? '', recinto.referencia ?? ''].join(' ').toLowerCase();
 
         return contenido.includes(texto);
       });
@@ -279,18 +247,112 @@ export class RecintosPage implements OnInit {
   }
 
   // ==========================================
+  // SELECTOR DE UBICACIÓN EN EL MAPA
+  // ==========================================
+
+  abrirSelectorUbicacion(): void {
+    this.mostrarMapa = true;
+    this.cdr.detectChanges();
+
+    setTimeout(() => {
+      if (!this.mapa) {
+        this.inicializarMapa();
+      }
+
+      setTimeout(() => {
+        this.mapa?.invalidateSize(true);
+      }, 300);
+    }, 200);
+  }
+
+  private inicializarMapa(): void {
+    const elemento = this.mapaUbicacion?.nativeElement;
+
+    if (!elemento) {
+      console.error('No se encontró el contenedor del mapa.');
+      return;
+    }
+
+    const latitudInicial = this.nuevoRecinto.latitud ?? -0.1807;
+    const longitudInicial = this.nuevoRecinto.longitud ?? -78.4678;
+
+    this.mapa = L.map(elemento, {
+      center: [latitudInicial, longitudInicial],
+      zoom: 15,
+      zoomControl: true,
+      scrollWheelZoom: true,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(this.mapa);
+
+    if (
+      this.nuevoRecinto.latitud !== null &&
+      this.nuevoRecinto.longitud !== null
+    ) {
+      this.actualizarMarcador(
+        this.nuevoRecinto.latitud,
+        this.nuevoRecinto.longitud
+      );
+    }
+
+    this.mapa.on('click', (evento: L.LeafletMouseEvent) => {
+      const latitud = Number(evento.latlng.lat.toFixed(7));
+      const longitud = Number(evento.latlng.lng.toFixed(7));
+
+      this.nuevoRecinto.latitud = latitud;
+      this.nuevoRecinto.longitud = longitud;
+
+      this.actualizarMarcador(latitud, longitud);
+
+      this.cdr.detectChanges();
+    });
+
+    setTimeout(() => {
+      this.mapa?.invalidateSize(true);
+    }, 300);
+  }
+
+  private actualizarMarcador(latitud: number, longitud: number): void {
+    if (!this.mapa) {
+      return;
+    }
+
+    if (this.marcador) {
+      this.marcador.setLatLng([latitud, longitud]);
+    } else {
+      this.marcador = L.circleMarker([latitud, longitud], {
+        radius: 9,
+        color: '#ffffff',
+        weight: 3,
+        fillColor: '#3880ff',
+        fillOpacity: 1,
+      }).addTo(this.mapa);
+    }
+
+    this.marcador.bindPopup('Ubicación seleccionada').openPopup();
+  }
+
+  cerrarSelectorUbicacion(): void {
+    this.mostrarMapa = false;
+
+    this.mapa?.remove();
+    this.mapa = null;
+    this.marcador = null;
+  }
+  // ==========================================
   // FORMULARIO DE REGISTRO
   // ==========================================
 
   abrirFormulario(): void {
-
     this.mostrarFormulario = true;
     this.mensajeError = '';
     this.mensajeExito = '';
   }
 
   cancelarFormulario(): void {
-
     this.mostrarFormulario = false;
 
     this.nuevoRecinto = {
@@ -300,12 +362,11 @@ export class RecintosPage implements OnInit {
       parroquia_id: null,
       capacidad_jrv: null,
       latitud: null,
-      longitud: null
+      longitud: null,
     };
   }
 
   async guardarRecinto(): Promise<void> {
-
     this.mensajeError = '';
     this.mensajeExito = '';
 
@@ -320,27 +381,41 @@ export class RecintosPage implements OnInit {
     }
 
     if (
-      this.provinciaSeleccionada === null ||
-      this.cantonSeleccionado === null
+      !Number.isInteger(this.nuevoRecinto.capacidad_jrv) ||
+      this.nuevoRecinto.capacidad_jrv === null ||
+      this.nuevoRecinto.capacidad_jrv < 1 ||
+      this.nuevoRecinto.capacidad_jrv > 500
     ) {
-      this.mensajeError =
-        'Selecciona primero la provincia y el cantón.';
+      this.mensajeError = 'Ingresa una cantidad de JRV entre 1 y 500.';
+      return;
+    }
+
+    if (
+      this.nuevoRecinto.latitud === null ||
+      this.nuevoRecinto.longitud === null
+    ) {
+      this.mensajeError = 'Selecciona la ubicación del recinto en el mapa.';
+      return;
+    }
+
+    if (this.provinciaSeleccionada === null || this.cantonSeleccionado === null) {
+      this.mensajeError = 'Selecciona primero la provincia y el cantón.';
       return;
     }
 
     this.guardando = true;
+    this.cdr.detectChanges();
 
     try {
-
       const recinto: Recinto = {
         nombre: this.nuevoRecinto.nombre.trim(),
         parroquia_id: Number(this.nuevoRecinto.parroquia_id),
         direccion: this.nuevoRecinto.direccion.trim(),
         referencia: this.nuevoRecinto.referencia.trim(),
-        capacidad_jrv: this.nuevoRecinto.capacidad_jrv ?? undefined,
+        capacidad_jrv: this.nuevoRecinto.capacidad_jrv,
         latitud: this.nuevoRecinto.latitud ?? undefined,
         longitud: this.nuevoRecinto.longitud ?? undefined,
-        activo: true
+        activo: true,
       };
 
       const respuesta = await this.recintosService.crearRecinto(recinto);
@@ -355,20 +430,17 @@ export class RecintosPage implements OnInit {
 
       // Actualizar listado
       await this.cargarDatosIniciales();
-
     } catch (error: any) {
-
       console.error('Error al registrar recinto:', error);
 
-      this.mensajeError =
-        error?.message ||
-        'No fue posible registrar el recinto. Verifica los permisos.';
-
+      this.mensajeError = error?.message || 'No fue posible registrar el recinto. Verifica los permisos.';
     } finally {
-
       this.guardando = false;
-
+      this.cdr.detectChanges();
     }
   }
 
+  obtenerNombreProvincia(provinciaId?: number): string {
+    return this.provincias.find((provincia) => Number(provincia.id) === Number(provinciaId))?.nombre ?? 'Provincia';
+  }
 }
