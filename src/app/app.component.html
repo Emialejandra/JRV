@@ -1,3 +1,11 @@
 <ion-app>
   <ion-router-outlet></ion-router-outlet>
+  <button
+    type="button"
+    class="theme-toggle"
+    (click)="tema.alternar()"
+    [attr.aria-label]="tema.oscuro() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+    [title]="tema.oscuro() ? 'Modo claro' : 'Modo oscuro'">
+    <ion-icon [name]="tema.oscuro() ? 'sunny-outline' : 'moon-outline'"></ion-icon>
+  </button>
 </ion-app>

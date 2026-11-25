@@ -41,7 +41,7 @@ interface ApiResponse<T> {
   providedIn: 'root',
 })
 export class ActasService {
-  constructor(private supabaseService: SupabaseService) { }
+  constructor(private supabaseService: SupabaseService) {}
 
   async obtenerActa<T = Acta>(id: number): Promise<T> {
     return this.invokeApi<T>({ action: 'detalle', acta_id: id });
@@ -63,44 +63,23 @@ export class ActasService {
   }
 
   async obtenerCandidaturas(dignidad: 'alcaldia' | 'prefectura'): Promise<CandidaturaParaActa[]> {
-    console.log('=== DIAGNÓSTICO CANDIDATURAS ===');
-    console.log('Dignidad:', dignidad);
-
-    const { data: sessionData } = await this.supabaseService.client.auth.getSession();
-    console.log(
-      'Usuario autenticado:',
-      sessionData.session?.user?.id ?? 'SIN SESIÓN'
-    );
-
     const { data, error } = await this.supabaseService.client
       .from('candidaturas')
-      .select(
-        'id, nombres, apellidos, organizacion_id, numero_lista, organizaciones(nombre, sigla)'
-      )
+      .select('id, nombres, apellidos, organizacion_id, numero_lista, organizaciones(nombre, sigla)')
       .eq('dignidad', dignidad)
       .eq('activo', true)
       .order('numero_lista', { nullsFirst: false })
       .order('nombres');
 
-    console.log('Candidaturas recibidas:', data);
-    console.log('Error:', error);
-    console.log('Cantidad:', data?.length ?? 0);
-
     if (error) throw error;
-
     const rows = (data ?? []) as unknown as Array<
       Omit<CandidaturaParaActa, 'organizaciones'> & {
-        organizaciones:
-        | CandidaturaParaActa['organizaciones']
-        | NonNullable<CandidaturaParaActa['organizaciones']>[];
+        organizaciones: CandidaturaParaActa['organizaciones'] | NonNullable<CandidaturaParaActa['organizaciones']>[];
       }
     >;
-
     return rows.map((row) => ({
       ...row,
-      organizaciones: Array.isArray(row.organizaciones)
-        ? (row.organizaciones[0] ?? null)
-        : row.organizaciones,
+      organizaciones: Array.isArray(row.organizaciones) ? (row.organizaciones[0] ?? null) : row.organizaciones,
     }));
   }
 

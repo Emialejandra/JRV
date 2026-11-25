@@ -16,20 +16,3 @@ export async function readAll<T>(getPage: (from: number, to: number) => PromiseL
     if (page.length < pageSize) return rows;
   }
 }
-
-export async function readAllByIds<T>(
-  ids: readonly number[],
-  getPage: (ids: number[], from: number, to: number) => PromiseLike<PageResult<T>>,
-  batchSize = 100,
-): Promise<T[]> {
-  if (!Number.isInteger(batchSize) || batchSize < 1) {
-    throw new RangeError('batchSize debe ser un entero positivo.');
-  }
-
-  const rows: T[] = [];
-  for (let index = 0; index < ids.length; index += batchSize) {
-    const batch = ids.slice(index, index + batchSize);
-    rows.push(...(await readAll((from, to) => getPage(batch, from, to))));
-  }
-  return rows;
-}

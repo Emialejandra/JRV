@@ -1,5 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit, ElementRef, ViewChild } from '@angular/core';
-import * as L from 'leaflet';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -63,14 +62,6 @@ import { TerritorioService } from '../../../core/services/territorio.service';
   styleUrls: ['./recintos.page.scss'],
 })
 export class RecintosPage implements OnInit {
-
-  @ViewChild('mapaUbicacion') mapaUbicacion?: ElementRef<HTMLDivElement>;
-
-  mostrarMapa = false;
-
-  private mapa: L.Map | null = null;
-  private marcador: L.CircleMarker | null = null;
-
   provincias: Provincia[] = [];
   cantones: Canton[] = [];
   parroquias: Parroquia[] = [];
@@ -105,8 +96,7 @@ export class RecintosPage implements OnInit {
   constructor(
     private recintosService: RecintosService,
     private territorioService: TerritorioService,
-    private readonly cdr: ChangeDetectorRef,
-  ) { }
+  ) {}
 
   async ngOnInit(): Promise<void> {
     await this.cargarDatosIniciales();
@@ -119,7 +109,6 @@ export class RecintosPage implements OnInit {
   async cargarDatosIniciales(): Promise<void> {
     this.cargando = true;
     this.mensajeError = '';
-    this.cdr.detectChanges();
 
     console.log('Iniciando carga de recintos...');
 
@@ -147,7 +136,6 @@ export class RecintosPage implements OnInit {
       this.mensajeError = error.message || 'No se pudo cargar la información.';
     } finally {
       this.cargando = false;
-      this.cdr.detectChanges();
 
       console.log('Estado final de cargando:', this.cargando);
       console.log('Carga finalizada.');
@@ -172,7 +160,6 @@ export class RecintosPage implements OnInit {
     }
 
     this.cargandoTerritorio = true;
-    this.cdr.detectChanges();
 
     try {
       this.cantones = (await this.territorioService.obtenerCantones(this.provinciaSeleccionada)) as Canton[];
@@ -188,7 +175,6 @@ export class RecintosPage implements OnInit {
       this.mensajeError = error?.message || 'No fue posible cargar los filtros territoriales.';
     } finally {
       this.cargandoTerritorio = false;
-      this.cdr.detectChanges();
     }
   }
 
@@ -247,102 +233,6 @@ export class RecintosPage implements OnInit {
   }
 
   // ==========================================
-  // SELECTOR DE UBICACIÓN EN EL MAPA
-  // ==========================================
-
-  abrirSelectorUbicacion(): void {
-    this.mostrarMapa = true;
-    this.cdr.detectChanges();
-
-    setTimeout(() => {
-      if (!this.mapa) {
-        this.inicializarMapa();
-      }
-
-      setTimeout(() => {
-        this.mapa?.invalidateSize(true);
-      }, 300);
-    }, 200);
-  }
-
-  private inicializarMapa(): void {
-    const elemento = this.mapaUbicacion?.nativeElement;
-
-    if (!elemento) {
-      console.error('No se encontró el contenedor del mapa.');
-      return;
-    }
-
-    const latitudInicial = this.nuevoRecinto.latitud ?? -0.1807;
-    const longitudInicial = this.nuevoRecinto.longitud ?? -78.4678;
-
-    this.mapa = L.map(elemento, {
-      center: [latitudInicial, longitudInicial],
-      zoom: 15,
-      zoomControl: true,
-      scrollWheelZoom: true,
-    });
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-      maxZoom: 19,
-    }).addTo(this.mapa);
-
-    if (
-      this.nuevoRecinto.latitud !== null &&
-      this.nuevoRecinto.longitud !== null
-    ) {
-      this.actualizarMarcador(
-        this.nuevoRecinto.latitud,
-        this.nuevoRecinto.longitud
-      );
-    }
-
-    this.mapa.on('click', (evento: L.LeafletMouseEvent) => {
-      const latitud = Number(evento.latlng.lat.toFixed(7));
-      const longitud = Number(evento.latlng.lng.toFixed(7));
-
-      this.nuevoRecinto.latitud = latitud;
-      this.nuevoRecinto.longitud = longitud;
-
-      this.actualizarMarcador(latitud, longitud);
-
-      this.cdr.detectChanges();
-    });
-
-    setTimeout(() => {
-      this.mapa?.invalidateSize(true);
-    }, 300);
-  }
-
-  private actualizarMarcador(latitud: number, longitud: number): void {
-    if (!this.mapa) {
-      return;
-    }
-
-    if (this.marcador) {
-      this.marcador.setLatLng([latitud, longitud]);
-    } else {
-      this.marcador = L.circleMarker([latitud, longitud], {
-        radius: 9,
-        color: '#ffffff',
-        weight: 3,
-        fillColor: '#3880ff',
-        fillOpacity: 1,
-      }).addTo(this.mapa);
-    }
-
-    this.marcador.bindPopup('Ubicación seleccionada').openPopup();
-  }
-
-  cerrarSelectorUbicacion(): void {
-    this.mostrarMapa = false;
-
-    this.mapa?.remove();
-    this.mapa = null;
-    this.marcador = null;
-  }
-  // ==========================================
   // FORMULARIO DE REGISTRO
   // ==========================================
 
@@ -390,21 +280,12 @@ export class RecintosPage implements OnInit {
       return;
     }
 
-    if (
-      this.nuevoRecinto.latitud === null ||
-      this.nuevoRecinto.longitud === null
-    ) {
-      this.mensajeError = 'Selecciona la ubicación del recinto en el mapa.';
-      return;
-    }
-
     if (this.provinciaSeleccionada === null || this.cantonSeleccionado === null) {
       this.mensajeError = 'Selecciona primero la provincia y el cantón.';
       return;
     }
 
     this.guardando = true;
-    this.cdr.detectChanges();
 
     try {
       const recinto: Recinto = {
@@ -436,7 +317,6 @@ export class RecintosPage implements OnInit {
       this.mensajeError = error?.message || 'No fue posible registrar el recinto. Verifica los permisos.';
     } finally {
       this.guardando = false;
-      this.cdr.detectChanges();
     }
   }
 

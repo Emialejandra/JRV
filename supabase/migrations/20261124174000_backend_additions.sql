@@ -20,24 +20,6 @@ begin
 end
 $$;
 
--- Clasifica las actas antiguas cuando sus votos identifican una sola dignidad.
--- Las actas sin votos o con dignidades mezcladas quedan sin clasificar para revisión.
-with dignidad_por_acta as (
-  select
-    d.acta_id,
-    min(c.dignidad) as dignidad
-  from public.detalle_votos d
-  join public.candidaturas c on c.id = d.candidatura_id
-  where c.dignidad in ('alcaldia', 'prefectura')
-  group by d.acta_id
-  having count(distinct c.dignidad) = 1
-)
-update public.actas a
-set dignidad = inferida.dignidad
-from dignidad_por_acta inferida
-where a.id = inferida.acta_id
-  and a.dignidad is null;
-
 create unique index if not exists actas_jrv_dignidad_uidx
   on public.actas (jrv_id, dignidad)
   where dignidad is not null;

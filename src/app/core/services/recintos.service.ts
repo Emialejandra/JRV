@@ -10,13 +10,6 @@ export interface Recinto {
   latitud?: number;
   longitud?: number;
   capacidad_jrv?: number;
-  cne_zona?: string | null;
-  cne_cda?: boolean | null;
-  juntas_femeninas?: number | null;
-  juntas_masculinas?: number | null;
-  electores?: number | null;
-  dificil_acceso?: boolean | null;
-  sin_conectividad?: boolean | null;
   activo?: boolean;
 }
 

@@ -31,15 +31,15 @@ const responder = (body: Record<string, unknown>, status = 200) => {
         };
 
     return new Response(JSON.stringify(payload), {
-        status,
-        headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-        }
-    });
+            status,
+            headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json'
+            }
+        });
 };
 
-class DuplicateCoordinatorError extends Error { }
+class DuplicateCoordinatorError extends Error {}
 
 function escapeHtml(value: string): string {
     return value.replace(/[&<>"']/g, (character) => {
@@ -157,10 +157,18 @@ Deno.serve(async (req) => {
             Deno.env.get("SERVICE_ROLE_KEY") ||
             Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
+        const RESEND_API_KEY =
+            Deno.env.get('RESEND_API_KEY');
+
+        const APP_URL =
+            Deno.env.get('APP_URL');
+
         if (
             !SUPABASE_URL ||
             !SUPABASE_ANON_KEY ||
-            !serviceRoleKey
+            !serviceRoleKey ||
+            !RESEND_API_KEY ||
+            !APP_URL
         ) {
 
             console.error(
@@ -574,7 +582,7 @@ Deno.serve(async (req) => {
                     passwordInicial,
 
                 email_confirm:
-                    true,
+                    false,
 
                 user_metadata: {
                     nombres:
@@ -690,95 +698,313 @@ Deno.serve(async (req) => {
             );
         }
 
-        // ==================================================
-        // REGISTRO COMPLETADO
-        // ==================================================
 
-        const perfilId = usuarioCreadoId;
+            // ==================================================
+            // GENERAR ENLACE DE CONFIRMACIÓN
+            // ==================================================
 
-        usuarioCreadoId = null;
-
-        return responder({
-            mensaje: 'Coordinador registrado correctamente.',
-            perfil_id: perfilId,
-            recinto_id: recintoId,
-            primer_acceso: true,
-            email_confirmado: true,
-            correo_enviado: false
-        }, 201);
-
-    } catch (error) {
-
-        // ==================================================
-        // REGISTRAR ERROR
-        // ==================================================
-
-        console.error('Error al crear coordinador:', {
-            etapa,
-            detalle: error instanceof Error
-                ? error.message
-                : String(error),
-            error
-        });
-
-        // ==================================================
-        // LIMPIEZA SI ALGO FALLÓ
-        // ==================================================
-
-        if (usuarioCreadoId && admin) {
+            etapa =
+                'generación del enlace de confirmación';
 
             const {
-                error: errorEliminarAsignaciones
-            } = await admin
-                .from('asignaciones')
-                .delete()
-                .eq('perfil_id', usuarioCreadoId);
+                data: enlace,
+                error: errorEnlace
+            } =
+                await admin.auth.admin.generateLink({
+                    type:
+                        'magiclink',
 
-            if (errorEliminarAsignaciones) {
+                    email:
+                        emailLimpio,
+
+                    options: {
+                        redirectTo:
+                            `${APP_URL}/login`
+                    }
+                });
+
+            if (
+                errorEnlace ||
+                !enlace?.properties?.action_link
+            ) {
+
+                throw (
+                    errorEnlace ??
+                    new Error(
+                        'No se pudo generar el enlace de confirmación.'
+                    )
+                );
+            }
+
+            const actionLink =
+                enlace.properties.action_link;
+
+            // ==================================================
+            // ENVIAR CORREO CON RESEND
+            // ==================================================
+
+            etapa =
+                'envío del correo de confirmación';
+
+            const correoResend =
+                await fetch(
+                    'https://api.resend.com/emails',
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            'Authorization':
+                                `Bearer ${RESEND_API_KEY}`,
+
+                            'Content-Type':
+                                'application/json'
+                        },
+
+                        body: JSON.stringify({
+                            from:
+                                'Sistema JRV <onboarding@resend.dev>',
+
+                            to: [
+                                emailLimpio
+                            ],
+
+                            subject:
+                                'Confirmación de cuenta - Sistema JRV',
+
+                            html: `
+                            <div style="
+                                font-family: Arial, sans-serif;
+                                max-width: 600px;
+                                margin: auto;
+                                padding: 24px;
+                            ">
+
+                                <h2>
+                                    Cuenta creada correctamente
+                                </h2>
+
+                                <p>
+                                    Hola
+                                    <strong>
+                                        ${escapeHtml(nombreLimpio)}
+                                        ${escapeHtml(apellidoLimpio)}
+                                    </strong>,
+                                </p>
+
+                                <p>
+                                    Se ha creado tu cuenta como
+                                    <strong>
+                                        Coordinador de Recinto
+                                    </strong>
+                                    en el Sistema JRV.
+                                </p>
+
+                                <p>
+                                    Para confirmar tu correo electrónico
+                                    y activar tu cuenta, utiliza el
+                                    siguiente botón:
+                                </p>
+
+                                <p style="
+                                    text-align: center;
+                                    margin: 30px 0;
+                                ">
+
+                                    <a
+                                        href="${actionLink}"
+                                        style="
+                                            display: inline-block;
+                                            padding: 12px 24px;
+                                            background: #2563eb;
+                                            color: white;
+                                            text-decoration: none;
+                                            border-radius: 6px;
+                                        "
+                                    >
+                                        Confirmar mi cuenta
+                                    </a>
+
+                                </p>
+
+                                <p>
+                                    Tu usuario para ingresar al sistema
+                                    es tu
+                                    <strong>
+                                        número de cédula
+                                    </strong>.
+                                </p>
+
+                                <p>
+                                    Tu contraseña inicial es:
+                                </p>
+
+                                <p>
+                                    <strong>
+                                        Ecuador2026
+                                    </strong>
+                                </p>
+
+                                <p>
+                                    Al ingresar por primera vez deberás
+                                    cambiar esta contraseña.
+                                </p>
+
+                                <hr>
+
+                                <p style="
+                                    font-size: 12px;
+                                    color: #666;
+                                ">
+                                    Si no reconoces esta solicitud,
+                                    puedes ignorar este correo.
+                                </p>
+
+                            </div>
+                        `
+                        })
+                    }
+                );
+
+            // ==================================================
+            // COMPROBAR RESPUESTA DE RESEND
+            // ==================================================
+
+            if (!correoResend.ok) {
+
+                const detalleResend =
+                    await correoResend.text();
+
                 console.error(
-                    'Error al eliminar asignaciones incompletas:',
+                    'Error de Resend:',
+                    {
+                        status: correoResend.status,
+                        detalle: detalleResend
+                    }
+                );
+
+                throw new Error(
+                    `Resend rechazó el correo (${correoResend.status}): ${detalleResend}`
+                );
+            }
+
+            // ==================================================
+            // REGISTRO COMPLETADO
+            // ==================================================
+
+            const perfilId =
+                usuarioCreadoId;
+
+            usuarioCreadoId =
+                null;
+
+            return responder({
+                mensaje:
+                    'Coordinador registrado correctamente. Se ha enviado un correo de confirmación.',
+
+                perfil_id:
+                    perfilId,
+
+                recinto_id:
+                    recintoId,
+
+                primer_acceso:
+                    true,
+
+                email_confirmado:
+                    false,
+
+                correo_enviado:
+                    true
+
+            }, 201);
+
+        } catch (error) {
+
+            const detalle =
+                error instanceof Error
+                    ? error.message
+                    : String(error);
+
+            console.error(
+                'Error al crear coordinador:',
+                {
+                    etapa,
+                    detalle,
+                    error
+                }
+            );
+
+            // ==================================================
+            // LIMPIEZA SI ALGO FALLÓ
+            // ==================================================
+
+            if (
+                usuarioCreadoId &&
+                admin
+            ) {
+
+                const {
+                    error:
                     errorEliminarAsignaciones
-                );
-            }
+                } =
+                    await admin
+                        .from('asignaciones')
+                        .delete()
+                        .eq(
+                            'perfil_id',
+                            usuarioCreadoId
+                        );
 
-            const {
-                error: errorEliminarPerfil
-            } = await admin
-                .from('perfiles')
-                .delete()
-                .eq('id', usuarioCreadoId);
+                if (errorEliminarAsignaciones) {
+                    console.error(
+                        'Error al eliminar asignaciones incompletas:',
+                        errorEliminarAsignaciones
+                    );
+                }
 
-            if (errorEliminarPerfil) {
-                console.error(
-                    'Error al eliminar perfil incompleto:',
+                const {
+                    error:
                     errorEliminarPerfil
-                );
-            }
+                } =
+                    await admin
+                        .from('perfiles')
+                        .delete()
+                        .eq(
+                            'id',
+                            usuarioCreadoId
+                        );
 
-            const {
-                error: errorEliminarUsuario
-            } = await admin.auth.admin
-                .deleteUser(usuarioCreadoId);
+                if (errorEliminarPerfil) {
 
-            if (errorEliminarUsuario) {
-                console.error(
-                    'Error al eliminar usuario incompleto:',
+                    console.error(
+                        'Error al eliminar perfil incompleto:',
+                        errorEliminarPerfil
+                    );
+                }
+
+                const {
+                    error:
                     errorEliminarUsuario
-                );
+                } =
+                    await admin.auth.admin
+                        .deleteUser(
+                            usuarioCreadoId
+                        );
+
+                if (errorEliminarUsuario) {
+
+                    console.error(
+                        'Error al eliminar usuario incompleto:',
+                        errorEliminarUsuario
+                    );
+                }
             }
+
+            const conflict = error instanceof DuplicateCoordinatorError;
+            return responder({
+                error: conflict
+                    ? error.message
+                    : 'No se pudo completar el registro del coordinador.'
+            }, conflict ? 409 : 500);
         }
-
-        // ==================================================
-        // RESPUESTA DEL ERROR
-        // ==================================================
-
-        const conflict =
-            error instanceof DuplicateCoordinatorError;
-
-        return responder({
-            error: conflict
-                ? error.message
-                : 'No se pudo completar el registro del coordinador.'
-        }, conflict ? 409 : 500);
-    }
-});
+    });

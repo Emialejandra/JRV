@@ -34,8 +34,12 @@
       <ion-card-content>
         <ion-item>
           <ion-label position="stacked">Provincia</ion-label>
-          <ion-select interface="popover" placeholder="Seleccionar provincia" [ngModel]="provinciaSeleccionada"
-            (ngModelChange)="cambiarProvincia($event)">
+          <ion-select
+            interface="popover"
+            placeholder="Seleccionar provincia"
+            [ngModel]="provinciaSeleccionada"
+            (ngModelChange)="cambiarProvincia($event)"
+          >
             <ion-select-option *ngFor="let provincia of provincias" [value]="provincia.id">
               {{ provincia.nombre }}
             </ion-select-option>
@@ -44,8 +48,13 @@
 
         <ion-item>
           <ion-label position="stacked">Cantón</ion-label>
-          <ion-select interface="popover" placeholder="Seleccionar cantón" [disabled]="!provinciaSeleccionada"
-            [ngModel]="cantonSeleccionado" (ngModelChange)="cambiarCanton($event)">
+          <ion-select
+            interface="popover"
+            placeholder="Seleccionar cantón"
+            [disabled]="!provinciaSeleccionada"
+            [ngModel]="cantonSeleccionado"
+            (ngModelChange)="cambiarCanton($event)"
+          >
             <ion-select-option *ngFor="let canton of cantones" [value]="canton.id">
               {{ canton.nombre }}
             </ion-select-option>
@@ -54,8 +63,13 @@
 
         <ion-item>
           <ion-label position="stacked">Parroquia</ion-label>
-          <ion-select interface="popover" placeholder="Seleccionar parroquia" [disabled]="!cantonSeleccionado"
-            [ngModel]="parroquiaSeleccionada" (ngModelChange)="cambiarParroquia($event)">
+          <ion-select
+            interface="popover"
+            placeholder="Seleccionar parroquia"
+            [disabled]="!cantonSeleccionado"
+            [ngModel]="parroquiaSeleccionada"
+            (ngModelChange)="cambiarParroquia($event)"
+          >
             <ion-select-option *ngFor="let parroquia of parroquiasDisponibles" [value]="parroquia.id">
               {{ parroquia.nombre }}
             </ion-select-option>
@@ -77,8 +91,12 @@
 
       <ion-card-content>
         <ion-item>
-          <ion-input label="Nombre del recinto" labelPlacement="stacked" [(ngModel)]="nuevoRecinto.nombre"
-            placeholder="Nombre del recinto">
+          <ion-input
+            label="Nombre del recinto"
+            labelPlacement="stacked"
+            [(ngModel)]="nuevoRecinto.nombre"
+            placeholder="Nombre del recinto"
+          >
           </ion-input>
         </ion-item>
 
@@ -92,8 +110,11 @@
 
         <ion-item>
           <ion-label position="stacked">Parroquia</ion-label>
-          <ion-select placeholder="Seleccionar parroquia" [(ngModel)]="nuevoRecinto.parroquia_id"
-            [disabled]="!cantonSeleccionado">
+          <ion-select
+            placeholder="Seleccionar parroquia"
+            [(ngModel)]="nuevoRecinto.parroquia_id"
+            [disabled]="!cantonSeleccionado"
+          >
             <ion-select-option *ngFor="let parroquia of parroquiasDisponibles" [value]="parroquia.id">
               {{ parroquia.nombre }}
             </ion-select-option>
@@ -101,57 +122,24 @@
         </ion-item>
 
         <ion-item>
-          <ion-input type="number" label="Capacidad de JRV" labelPlacement="stacked"
-            [(ngModel)]="nuevoRecinto.capacidad_jrv">
+          <ion-input
+            type="number"
+            label="Capacidad de JRV"
+            labelPlacement="stacked"
+            [(ngModel)]="nuevoRecinto.capacidad_jrv"
+          >
           </ion-input>
         </ion-item>
 
-        <!-- Selector de ubicación -->
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>Ubicación del recinto</ion-card-title>
-          </ion-card-header>
+        <ion-item>
+          <ion-input type="number" label="Latitud" labelPlacement="stacked" [(ngModel)]="nuevoRecinto.latitud">
+          </ion-input>
+        </ion-item>
 
-          <ion-card-content>
-            <p>Selecciona en el mapa el lugar donde se encuentra el recinto.</p>
-
-            <ion-button expand="block" color="tertiary" (click)="abrirSelectorUbicacion()">
-              Elegir ubicación en el mapa
-            </ion-button>
-
-            <!-- Mapa interactivo -->
-            <div *ngIf="mostrarMapa">
-              <ion-note color="medium">
-                Haz clic sobre el mapa para marcar la ubicación exacta.
-              </ion-note>
-
-              <div #mapaUbicacion class="mapa-ubicacion"></div>
-
-              <ion-button expand="block" (click)="cerrarSelectorUbicacion()">
-                Confirmar ubicación
-              </ion-button>
-            </div>
-
-            <!-- Coordenadas seleccionadas -->
-            <div *ngIf="nuevoRecinto.latitud !== null && nuevoRecinto.longitud !== null">
-              <ion-note color="success">
-                Ubicación seleccionada correctamente.
-              </ion-note>
-
-              <p>
-                <strong>Latitud:</strong> {{ nuevoRecinto.latitud }}
-              </p>
-
-              <p>
-                <strong>Longitud:</strong> {{ nuevoRecinto.longitud }}
-              </p>
-            </div>
-
-            <ion-note *ngIf="nuevoRecinto.latitud === null || nuevoRecinto.longitud === null" color="warning">
-              Todavía no has seleccionado una ubicación.
-            </ion-note>
-          </ion-card-content>
-        </ion-card>
+        <ion-item>
+          <ion-input type="number" label="Longitud" labelPlacement="stacked" [(ngModel)]="nuevoRecinto.longitud">
+          </ion-input>
+        </ion-item>
 
         <ion-button expand="block" (click)="guardarRecinto()" [disabled]="guardando">
           <ion-spinner *ngIf="guardando"></ion-spinner>
@@ -203,26 +191,6 @@
             <p>
               <strong>Capacidad JRV:</strong>
               {{ recinto.capacidad_jrv ?? 'No especificada' }}
-            </p>
-
-            <p *ngIf="recinto.electores !== null && recinto.electores !== undefined">
-              <strong>Electores:</strong> {{ recinto.electores }}
-            </p>
-
-            <p *ngIf="recinto.cne_zona">
-              <strong>Zona CNE:</strong> {{ recinto.cne_zona }}
-            </p>
-
-            <p *ngIf="recinto.juntas_femeninas !== null && recinto.juntas_femeninas !== undefined">
-              <strong>JRV mujeres / hombres:</strong>
-              {{ recinto.juntas_femeninas }} / {{ recinto.juntas_masculinas ?? 0 }}
-            </p>
-
-            <p *ngIf="recinto.dificil_acceso || recinto.sin_conectividad || recinto.cne_cda">
-              <strong>Observaciones CNE:</strong>
-              <span *ngIf="recinto.cne_cda"> CDA</span>
-              <span *ngIf="recinto.dificil_acceso"> · Difícil acceso</span>
-              <span *ngIf="recinto.sin_conectividad"> · Sin conectividad</span>
             </p>
 
             <ion-badge [color]="recinto.activo ? 'success' : 'medium'">

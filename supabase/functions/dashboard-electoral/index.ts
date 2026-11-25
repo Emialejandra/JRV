@@ -1,6 +1,6 @@
 import { assertRecintoAccess, authenticate } from '../_shared/auth.ts';
 import { ApiError, errorResponse, handleOptions, readJson, success } from '../_shared/http.ts';
-import { readAll, readAllByIds } from '../_shared/pagination.ts';
+import { readAll } from '../_shared/pagination.ts';
 import { asPositiveInteger } from '../_shared/validation.ts';
 
 interface RecintoRow {
@@ -161,23 +161,23 @@ Deno.serve(async (request) => {
     }
 
     if (provinceIds.length && recintoIds.length === 0) {
-      const cantones = await readAllByIds<{ id: number }>(provinceIds, (ids, from, to) =>
-        actor.admin.from('cantones').select('id').in('provincia_id', ids).range(from, to),
+      const cantones = await readAll<{ id: number }>((from, to) =>
+        actor.admin.from('cantones').select('id').in('provincia_id', provinceIds).range(from, to),
       );
       const cantonIds = cantones.map((canton) => canton.id);
 
       if (cantonIds.length) {
-        const parroquias = await readAllByIds<{ id: number }>(cantonIds, (ids, from, to) =>
-          actor.admin.from('parroquias').select('id').in('canton_id', ids).range(from, to),
+        const parroquias = await readAll<{ id: number }>((from, to) =>
+          actor.admin.from('parroquias').select('id').in('canton_id', cantonIds).range(from, to),
         );
         const parroquiaIds = parroquias.map((parroquia) => parroquia.id);
 
         if (parroquiaIds.length) {
-          const recintos = await readAllByIds<RecintoRow>(parroquiaIds, (ids, from, to) =>
+          const recintos = await readAll<RecintoRow>((from, to) =>
             actor.admin
               .from('recintos')
               .select('id, nombre, parroquia_id')
-              .in('parroquia_id', ids)
+              .in('parroquia_id', parroquiaIds)
               .eq('activo', true)
               .range(from, to),
           );
@@ -204,20 +204,20 @@ Deno.serve(async (request) => {
       });
     }
 
-    const recintos = await readAllByIds<RecintoRow>(recintoIds, (ids, from, to) =>
-      actor.admin.from('recintos').select('id, nombre, parroquia_id').in('id', ids).range(from, to),
+    const recintos = await readAll<RecintoRow>((from, to) =>
+      actor.admin.from('recintos').select('id, nombre, parroquia_id').in('id', recintoIds).range(from, to),
     );
-    const jrvs = await readAllByIds<JrvRow>(recintoIds, (ids, from, to) =>
+    const jrvs = await readAll<JrvRow>((from, to) =>
       actor.admin
         .from('jrv')
         .select('id, recinto_id, numero, estado')
-        .in('recinto_id', ids)
+        .in('recinto_id', recintoIds)
         .order('numero')
         .range(from, to),
     );
     const jrvIds = jrvs.map((jrv) => jrv.id);
     const actas = jrvIds.length
-      ? await readAllByIds<ActaRow>(jrvIds, (ids, from, to) =>
+      ? await readAll<ActaRow>((from, to) =>
           actor.admin
             .from('actas')
             .select(
@@ -227,34 +227,34 @@ Deno.serve(async (request) => {
               total_votantes, fecha_registro, updated_at
             `,
             )
-            .in('jrv_id', ids)
+            .in('jrv_id', jrvIds)
             .range(from, to),
         )
       : [];
     const actaIds = actas.map((acta) => acta.id);
     const details = actaIds.length
-      ? await readAllByIds<DetalleVotoRow>(actaIds, (ids, from, to) =>
+      ? await readAll<DetalleVotoRow>((from, to) =>
           actor.admin
             .from('detalle_votos')
             .select('acta_id, candidatura_id, cantidad_votos')
-            .in('acta_id', ids)
+            .in('acta_id', actaIds)
             .range(from, to),
         )
       : [];
     const candidateIds = [...new Set(details.map((detail) => detail.candidatura_id))];
     const candidates = candidateIds.length
-      ? await readAllByIds<CandidaturaRow>(candidateIds, (ids, from, to) =>
+      ? await readAll<CandidaturaRow>((from, to) =>
           actor.admin
             .from('candidaturas')
             .select('id, nombres, apellidos, organizacion_id')
-            .in('id', ids)
+            .in('id', candidateIds)
             .range(from, to),
         )
       : [];
     const organizationIds = [...new Set(candidates.map((candidate) => candidate.organizacion_id))];
     const organizations = organizationIds.length
-      ? await readAllByIds<OrganizacionRow>(organizationIds, (ids, from, to) =>
-          actor.admin.from('organizaciones').select('id, nombre, sigla').in('id', ids).range(from, to),
+      ? await readAll<OrganizacionRow>((from, to) =>
+          actor.admin.from('organizaciones').select('id, nombre, sigla').in('id', organizationIds).range(from, to),
         )
       : [];
 

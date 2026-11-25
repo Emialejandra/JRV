@@ -110,7 +110,6 @@ Deno.serve(async (request) => {
       return success({ asignacion_id: assignmentId, activo: false });
     }
 
-
     if (body.action === 'listar') {
       let recintoId: number | null = null;
       let jrvId: number | null = null;
@@ -119,32 +118,11 @@ Deno.serve(async (request) => {
         recintoId = asPositiveInteger(body.recinto_id, 'recinto_id');
         await assertRecintoAccess(actor, recintoId);
       }
-
       if (body.jrv_id !== undefined && body.jrv_id !== null) {
         jrvId = asPositiveInteger(body.jrv_id, 'jrv_id');
         await assertJrvAccess(actor, jrvId);
       }
 
-      // 1. Obtener las JRV del recinto solicitado.
-      let jrvIdsDelRecinto: number[] | null = null;
-
-      if (recintoId !== null) {
-        const { data: jrvsDelRecinto, error: jrvError } = await actor.admin
-          .from('jrv')
-          .select('id')
-          .eq('recinto_id', recintoId);
-
-        if (jrvError) throw jrvError;
-
-        jrvIdsDelRecinto = (jrvsDelRecinto ?? []).map((jrv) => jrv.id);
-
-        // Si el recinto no tiene JRV, no existen veedores que listar.
-        if (jrvIdsDelRecinto.length === 0) {
-          return success([]);
-        }
-      }
-
-      // 2. Consultar las asignaciones activas de veedores.
       let query = actor.admin
         .from('asignaciones')
         .select('id, perfil_id, jrv_id, recinto_id, tipo_asignacion, fecha_asignacion, activo')
@@ -162,73 +140,42 @@ Deno.serve(async (request) => {
             'Debes especificar recinto_id o jrv_id para consultar asignaciones.',
           );
         }
-
-        // Filtrar por las JRV que pertenecen al recinto.
-        if (jrvIdsDelRecinto !== null) {
-          query = query.in('jrv_id', jrvIdsDelRecinto);
-        }
-
-        if (jrvId !== null) {
-          query = query.eq('jrv_id', jrvId);
-        }
+        if (recintoId !== null) query = query.eq('recinto_id', recintoId);
+        if (jrvId !== null) query = query.eq('jrv_id', jrvId);
       }
 
       const { data: assignments, error } = await query;
-
       if (error) throw error;
 
-      // 3. Obtener los perfiles de los veedores.
-      const profileIds = [
-        ...new Set((assignments ?? []).map((assignment) => assignment.perfil_id)),
-      ];
-
+      const profileIds = [...new Set((assignments ?? []).map((assignment) => assignment.perfil_id))];
       const jrvIds = [
         ...new Set(
-          (assignments ?? [])
-            .map((assignment) => assignment.jrv_id)
-            .filter((id): id is number => id !== null),
+          (assignments ?? []).map((assignment) => assignment.jrv_id).filter((id): id is number => id !== null),
         ),
       ];
-
       const [profilesResult, jrvsResult] = await Promise.all([
         profileIds.length
-          ? actor.admin
-            .from('perfiles')
-            .select('id, nombres, apellidos, cedula, email, telefono')
-            .in('id', profileIds)
+          ? actor.admin.from('perfiles').select('id, nombres, apellidos, cedula, email, telefono').in('id', profileIds)
           : Promise.resolve({ data: [], error: null }),
-
         jrvIds.length
-          ? actor.admin
-            .from('jrv')
-            .select('id, numero, codigo, recinto_id, estado')
-            .in('id', jrvIds)
+          ? actor.admin.from('jrv').select('id, numero, codigo, recinto_id, estado').in('id', jrvIds)
           : Promise.resolve({ data: [], error: null }),
       ]);
 
       if (profilesResult.error) throw profilesResult.error;
       if (jrvsResult.error) throw jrvsResult.error;
 
-      // 4. Organizar los resultados.
-      const profiles = new Map(
-        (profilesResult.data ?? []).map((profile) => [profile.id, profile]),
-      );
-
-      const jrvs = new Map(
-        (jrvsResult.data ?? []).map((jrv) => [jrv.id, jrv]),
-      );
+      const profiles = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile]));
+      const jrvs = new Map((jrvsResult.data ?? []).map((jrv) => [jrv.id, jrv]));
 
       return success(
         (assignments ?? []).map((assignment) => ({
           ...assignment,
           veedor: profiles.get(assignment.perfil_id) ?? null,
-          jrv: assignment.jrv_id
-            ? jrvs.get(assignment.jrv_id) ?? null
-            : null,
+          jrv: assignment.jrv_id ? (jrvs.get(assignment.jrv_id) ?? null) : null,
         })),
       );
     }
-
 
     throw new ApiError(400, 'UNKNOWN_ACTION', 'La acción solicitada no existe.');
   } catch (error) {

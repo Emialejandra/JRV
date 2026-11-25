@@ -1,5 +1,5 @@
 ion-content {
-  --background: #f4f7fb;
+  --background: var(--app-bg);
 }
 .landing {
   min-height: 100%;
@@ -83,10 +83,10 @@ h1 em {
   gap: 14px;
   align-items: flex-start;
   padding: 16px;
-  background: white;
-  border: 1px solid #e8edf4;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
   border-radius: 17px;
-  box-shadow: 0 5px 18px #172b4d08;
+  box-shadow: var(--app-shadow);
 }
 .feature-icon {
   flex: 0 0 36px;
@@ -94,26 +94,26 @@ h1 em {
   display: grid;
   place-items: center;
   border-radius: 11px;
-  background: #eef5ff;
-  color: #1c5a9b;
+  background: var(--app-surface-alt);
+  color: var(--app-accent-text);
   font-size: 11px;
   font-weight: 800;
 }
 .features strong {
   font-size: 14px;
-  color: #172b4d;
+  color: var(--app-heading);
 }
 .features p {
   margin: 4px 0 0;
   font-size: 12px;
   line-height: 1.45;
-  color: #68778d;
+  color: var(--app-muted);
 }
 footer {
   margin-top: auto;
   padding: 12px 0 2px;
   text-align: center;
-  color: #8491a4;
+  color: var(--app-muted);
   font-size: 11px;
 }
 @media (min-width: 760px) {

@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../../core/services/supabase.service';
@@ -73,7 +73,6 @@ export class CoordinadoresPage implements OnInit {
   constructor(
     private supabaseService: SupabaseService,
     private alertController: AlertController,
-    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit() {
@@ -83,7 +82,6 @@ export class CoordinadoresPage implements OnInit {
   async cargarRecintos() {
     this.cargando = true;
     this.mensaje = '';
-    this.cdr.detectChanges();
 
     try {
       const { data, error } = await this.supabaseService.client
@@ -100,7 +98,6 @@ export class CoordinadoresPage implements OnInit {
       this.mostrarMensaje('No se pudieron cargar los recintos. Verifica los permisos.', 'danger');
     } finally {
       this.cargando = false;
-      this.cdr.detectChanges();
     }
   }
 
@@ -119,7 +116,6 @@ export class CoordinadoresPage implements OnInit {
     }
 
     this.guardando = true;
-    this.cdr.detectChanges();
 
     try {
       const { data, error } = await this.supabaseService.client.functions.invoke('crear-coordinador', {
@@ -162,7 +158,6 @@ export class CoordinadoresPage implements OnInit {
       await this.mostrarAlerta('No se pudo registrar', mensaje);
     } finally {
       this.guardando = false;
-      this.cdr.detectChanges();
     }
   }
 

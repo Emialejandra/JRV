@@ -58,7 +58,7 @@ Deno.serve(async (request) => {
       const actas = await Promise.all(
         (data ?? []).map(async (acta) => ({
           ...acta,
-          fotografia_url: (await signPhoto(actor.admin, acta.fotografia_url)) ?? acta.fotografia_url ?? null,
+          fotografia_url: (await signPhoto(actor.admin, acta.fotografia_path)) ?? acta.fotografia_url ?? null,
         })),
       );
 
@@ -114,7 +114,7 @@ Deno.serve(async (request) => {
 
       return success({
         ...acta,
-        fotografia_url: (await signPhoto(actor.admin, acta.fotografia_url)) ?? acta.fotografia_url ?? null,
+        fotografia_url: (await signPhoto(actor.admin, acta.fotografia_path)) ?? acta.fotografia_url ?? null,
       });
     }
 
@@ -169,11 +169,11 @@ Deno.serve(async (request) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-
       return success(data ?? []);
-
-      throw new ApiError(400, 'UNKNOWN_ACTION', 'La acción solicitada no existe.');
-    } catch (error) {
-      return errorResponse(error);
     }
-  });
+
+    throw new ApiError(400, 'UNKNOWN_ACTION', 'La acción solicitada no existe.');
+  } catch (error) {
+    return errorResponse(error);
+  }
+});

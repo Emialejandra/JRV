@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
@@ -321,7 +321,6 @@ export class DetalleActaPage implements OnInit {
   private readonly router = inject(Router);
   private readonly actasService = inject(ActasService);
   private readonly perfilesService = inject(PerfilesService);
-  private readonly cdr = inject(ChangeDetectorRef);
   actas: ActaDetalle[] = [];
   acta: ActaDetalle | null = null;
   cargando = false;
@@ -396,7 +395,6 @@ export class DetalleActaPage implements OnInit {
     }
     this.guardando = true;
     this.mensajeError = '';
-    this.cdr.detectChanges();
     try {
       const photo = this.fotoNueva
         ? await this.actasService.subirFotografia(this.acta.jrv_id, this.acta.dignidad, this.fotoNueva)
@@ -423,7 +421,6 @@ export class DetalleActaPage implements OnInit {
       this.mensajeError = error instanceof Error ? error.message : 'No se pudo corregir el acta.';
     } finally {
       this.guardando = false;
-      this.cdr.detectChanges();
     }
   }
 
@@ -433,7 +430,6 @@ export class DetalleActaPage implements OnInit {
     this.acta = null;
     this.actas = [];
     this.puedeCorregir = false;
-    this.cdr.detectChanges();
     const params = this.route.snapshot.queryParamMap;
     const actaId = Number(params.get('actaId'));
     const jrvId = Number(params.get('jrvId'));
@@ -450,7 +446,6 @@ export class DetalleActaPage implements OnInit {
       this.mensajeError = error instanceof Error ? error.message : 'No se pudo cargar el acta.';
     } finally {
       this.cargando = false;
-      this.cdr.detectChanges();
     }
   }
 }

@@ -5,7 +5,7 @@ import { SupabaseService } from './supabase.service';
   providedIn: 'root',
 })
 export class AuthService {
-  constructor(private supabaseService: SupabaseService) { }
+  constructor(private supabaseService: SupabaseService) {}
 
   async iniciarSesion(cedula: string, password: string) {
     const { data, error } = await this.supabaseService.client.functions.invoke('login-cedula', {
@@ -33,15 +33,6 @@ export class AuthService {
       throw sessionError;
     }
 
-    const { data: userData, error: userError } =
-      await this.supabaseService.client.auth.getUser();
-
-    console.log('SESIÓN ESTABLECIDA:', {
-      sessionExists: !!sessionData.session,
-      userId: sessionData.session?.user?.id,
-      userExists: !!userData.user,
-      userError: userError?.message
-    });
     return sessionData;
   }
 
@@ -87,54 +78,20 @@ export class AuthService {
   }
 
   async cambiarPassword(nuevaPassword: string) {
-    const { data, error } =
-      await this.supabaseService.client.functions.invoke(
-        'cambiar-password',
-        {
-          body: { nuevaPassword },
-        },
-      );
+    const { data, error } = await this.supabaseService.client.functions.invoke('cambiar-password', {
+      body: { nuevaPassword },
+    });
 
     if (error) {
-      console.error('ERROR COMPLETO EDGE FUNCTION:', error);
-
-      const context = (error as any).context;
-
-      if (context instanceof Response) {
-        const responseBody = await context.clone().text();
-
-        console.error('ESTADO HTTP:', context.status);
-        console.error('RESPUESTA DEL SERVIDOR:', responseBody);
-
-        try {
-          const parsed = JSON.parse(responseBody);
-
-          throw new Error(
-            parsed?.error?.message ||
-            parsed?.message ||
-            error.message
-          );
-        } catch (parseError: any) {
-          if (parseError instanceof SyntaxError) {
-            throw new Error(responseBody || error.message);
-          }
-
-          throw parseError;
-        }
-      }
-
-      throw new Error(error.message);
+      throw new Error(data?.error?.message || error.message || 'No se pudo cambiar la contraseña.');
     }
-
     if (data?.success === false) {
-      throw new Error(
-        data.error?.message ||
-        'No se pudo cambiar la contraseña.'
-      );
+      throw new Error(data.error?.message || 'No se pudo cambiar la contraseña.');
     }
 
     return data?.data;
   }
+
   async enviarRecuperacionPassword(email: string) {
     const { data, error } = await this.supabaseService.client.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/cambio-password`,

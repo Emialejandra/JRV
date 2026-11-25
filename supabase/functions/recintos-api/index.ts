@@ -24,13 +24,6 @@ interface RecintoRow {
   latitud: number | null;
   longitud: number | null;
   capacidad_jrv: number | null;
-  cne_zona: string | null;
-  cne_cda: boolean | null;
-  juntas_femeninas: number | null;
-  juntas_masculinas: number | null;
-  electores: number | null;
-  dificil_acceso: boolean | null;
-  sin_conectividad: boolean | null;
   activo: boolean;
 }
 
@@ -141,9 +134,7 @@ Deno.serve(async (request) => {
       ? await readAll<RecintoRow>((from, to) =>
           actor.admin
             .from('recintos')
-            .select(
-              'id, parroquia_id, nombre, direccion, referencia, latitud, longitud, capacidad_jrv, cne_zona, cne_cda, juntas_femeninas, juntas_masculinas, electores, dificil_acceso, sin_conectividad, activo',
-            )
+            .select('id, parroquia_id, nombre, direccion, referencia, latitud, longitud, capacidad_jrv, activo')
             .in('parroquia_id', parroquiaIds)
             .eq('activo', true)
             .order('nombre')

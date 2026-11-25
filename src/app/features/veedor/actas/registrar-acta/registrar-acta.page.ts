@@ -11,7 +11,6 @@ import {
   IonCardContent,
   IonCardHeader,
   IonCardTitle,
-  IonCardSubtitle,
   IonCheckbox,
   IonContent,
   IonHeader,
@@ -48,7 +47,6 @@ type Dignidad = 'alcaldia' | 'prefectura';
     IonCardContent,
     IonCardHeader,
     IonCardTitle,
-    IonCardSubtitle,
     IonCheckbox,
     IonContent,
     IonHeader,
@@ -63,8 +61,313 @@ type Dignidad = 'alcaldia' | 'prefectura';
     IonTitle,
     IonToolbar,
   ],
-  templateUrl: './registrar-acta.page.html',
-  styleUrls: ['./registrar-acta.page.scss'],
+  template: `
+    <ion-header>
+      <ion-toolbar color="primary">
+        <ion-buttons slot="start"><ion-back-button defaultHref="/veedor/mesas" /></ion-buttons>
+        <ion-title>Registrar acta</ion-title>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="ion-padding">
+      <main class="page-shell">
+        <p class="eyebrow">CAPTURA ELECTORAL</p>
+        <h1>Resultado de la JRV</h1>
+        <p class="intro">
+          Registra los votos tal como aparecen en el acta física. Podrás revisar el total antes de guardar.
+        </p>
+
+        <ion-card>
+          <ion-card-content>
+            <ion-item>
+              <ion-label position="stacked">Mesa asignada</ion-label>
+              <ion-select
+                [(ngModel)]="jrvId"
+                interface="action-sheet"
+                placeholder="Elige una JRV"
+                [disabled]="asignaciones.length === 1"
+              >
+                @for (asignacion of asignaciones; track asignacion.id) {
+                  <ion-select-option [value]="asignacion.jrv_id"
+                    >JRV {{ asignacion.jrv?.numero ?? asignacion.jrv_id }} ·
+                    {{ asignacion.recintos?.nombre }}</ion-select-option
+                  >
+                }
+              </ion-select>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Dignidad</ion-label>
+              <ion-select [(ngModel)]="dignidad" (ionChange)="cargarCandidaturas()" interface="action-sheet">
+                <ion-select-option value="alcaldia">Alcaldía</ion-select-option>
+                <ion-select-option value="prefectura">Prefectura</ion-select-option>
+              </ion-select>
+            </ion-item>
+          </ion-card-content>
+        </ion-card>
+
+        <ion-card>
+          <ion-card-header><ion-card-title>Votos por organización</ion-card-title></ion-card-header>
+          <ion-card-content>
+            @if (cargandoCandidaturas) {
+              <div class="loading"><ion-spinner name="crescent" /><span>Cargando candidaturas…</span></div>
+            } @else if (candidaturas.length !== 5) {
+              <ion-text color="danger"
+                ><p>
+                  Se esperaban cinco candidaturas activas para esta dignidad y se encontraron {{ candidaturas.length }}.
+                  Revisa la precarga electoral.
+                </p></ion-text
+              >
+            } @else {
+              @for (candidatura of candidaturas; track candidatura.id) {
+                <ion-item>
+                  <ion-label class="ion-text-wrap">
+                    <strong>{{ candidatura.organizaciones?.sigla || candidatura.organizaciones?.nombre }}</strong>
+                    <p>{{ candidatura.nombres }} {{ candidatura.apellidos }}</p>
+                  </ion-label>
+                  <ion-input
+                    slot="end"
+                    type="number"
+                    inputmode="numeric"
+                    min="0"
+                    step="1"
+                    aria-label="Votos"
+                    [(ngModel)]="votos[candidatura.id]"
+                    (ionInput)="actualizarTotal()"
+                  />
+                </ion-item>
+              }
+            }
+            <ion-item>
+              <ion-label position="stacked">Votos blancos</ion-label>
+              <ion-input
+                type="number"
+                inputmode="numeric"
+                min="0"
+                step="1"
+                [(ngModel)]="blancos"
+                (ionInput)="actualizarTotal()"
+              />
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Votos nulos</ion-label>
+              <ion-input
+                type="number"
+                inputmode="numeric"
+                min="0"
+                step="1"
+                [(ngModel)]="nulos"
+                (ionInput)="actualizarTotal()"
+              />
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Total de sufragantes según el acta</ion-label>
+              <ion-input
+                type="number"
+                inputmode="numeric"
+                min="0"
+                step="1"
+                [(ngModel)]="sufragantes"
+                (ionInput)="actualizarTotal()"
+              />
+            </ion-item>
+            <div class="total-row">
+              <span>Votos contabilizados</span>
+              <ion-badge [color]="cuadraTotal ? 'success' : 'warning'"
+                >{{ totalVotos }} / {{ sufragantes || 0 }}</ion-badge
+              >
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <ion-card>
+          <ion-card-header><ion-card-title>Fotografía y ubicación</ion-card-title></ion-card-header>
+          <ion-card-content>
+            <label class="camera-control" for="acta-photo">
+              <span class="camera-icon">＋</span>
+              <span>{{ archivo ? 'Cambiar fotografía' : 'Tomar fotografía del acta' }}</span>
+              <small>Usa la cámara trasera · JPG, PNG o WebP · máximo 10 MB</small>
+            </label>
+            <input
+              id="acta-photo"
+              class="visually-hidden"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              capture="environment"
+              (change)="seleccionarFoto($event)"
+            />
+            @if (vistaPrevia) {
+              <img class="photo-preview" [src]="vistaPrevia" alt="Vista previa de la fotografía del acta" />
+              <ion-checkbox [(ngModel)]="fotoLegible" labelPlacement="end"
+                >Confirmo que el texto y los números se leen con claridad.</ion-checkbox
+              >
+            }
+            <ion-button expand="block" fill="outline" (click)="capturarUbicacion()" [disabled]="obteniendoGps">
+              @if (obteniendoGps) {
+                <ion-spinner name="crescent" />
+              } @else {
+                <span>⌖</span>
+              }
+              {{ coordenadas ? 'Ubicación guardada' : 'Guardar mi ubicación GPS' }}
+            </ion-button>
+            @if (coordenadas) {
+              <p class="gps-note">
+                {{ coordenadas.latitud | number: '1.4-6' }}, {{ coordenadas.longitud | number: '1.4-6' }}
+              </p>
+            }
+            <ion-item>
+              <ion-label position="stacked">Observaciones (opcional)</ion-label>
+              <ion-textarea
+                [(ngModel)]="observaciones"
+                autoGrow="true"
+                maxlength="2000"
+                placeholder="Describe novedades visibles en el acta"
+              />
+            </ion-item>
+          </ion-card-content>
+        </ion-card>
+
+        @if (mensajeError) {
+          <ion-card color="danger"
+            ><ion-card-content>{{ mensajeError }}</ion-card-content></ion-card
+          >
+        }
+        @if (mensajeExito) {
+          <ion-card color="success"
+            ><ion-card-content
+              >{{ mensajeExito }}
+              @if (guardadoLocal) {
+                <ion-button fill="clear" routerLink="/veedor/actas/pendientes">Ver pendientes</ion-button>
+              }
+            </ion-card-content></ion-card
+          >
+        }
+
+        <ion-button class="submit-button" expand="block" (click)="guardar()" [disabled]="guardando || !puedeGuardar">
+          @if (guardando) {
+            <ion-spinner name="crescent" />
+          } @else {
+            Guardar acta
+          }
+        </ion-button>
+        <p class="fine-print">Al guardar se verifica nuevamente la suma de votos en el servidor.</p>
+      </main>
+    </ion-content>
+  `,
+  styles: [
+    `
+      .page-shell {
+        max-width: 680px;
+        margin: 0 auto;
+        padding-bottom: 28px;
+      }
+      .eyebrow {
+        color: var(--ion-color-primary);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        margin: 8px 0;
+      }
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 800;
+      }
+      .intro {
+        color: var(--ion-color-medium);
+        line-height: 1.5;
+        margin: 8px 0 18px;
+      }
+      ion-card {
+        border-radius: 18px;
+        margin: 12px 0;
+        box-shadow: 0 4px 18px #172b4d0b;
+      }
+      ion-card-title {
+        font-size: 17px;
+      }
+      ion-item {
+        --padding-start: 0;
+        --inner-padding-end: 4px;
+      }
+      ion-item p {
+        color: var(--ion-color-medium);
+        font-size: 13px;
+        margin: 4px 0;
+      }
+      ion-input[slot='end'] {
+        max-width: 84px;
+        text-align: right;
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .loading {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 14px 0;
+      }
+      .total-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 0 4px;
+        font-weight: 700;
+      }
+      .camera-control {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 7px;
+        padding: 22px 12px;
+        margin: 4px 0 14px;
+        border: 1px dashed #a8b4c8;
+        border-radius: 16px;
+        text-align: center;
+        font-weight: 700;
+        color: var(--ion-color-primary);
+      }
+      .camera-control small {
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--ion-color-medium);
+      }
+      .camera-icon {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: #e9f1ff;
+        font-size: 25px;
+      }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .photo-preview {
+        width: 100%;
+        max-height: 360px;
+        object-fit: contain;
+        border-radius: 12px;
+        background: #f4f6f8;
+        margin: 0 0 12px;
+      }
+      .gps-note,
+      .fine-print {
+        text-align: center;
+        color: var(--ion-color-medium);
+        font-size: 12px;
+      }
+      .submit-button {
+        margin-top: 14px;
+        min-height: 50px;
+        font-weight: 700;
+      }
+    `,
+  ],
 })
 export class RegistrarActaPage implements OnInit {
   private readonly asignacionesService = inject(AsignacionesService);
@@ -76,17 +379,12 @@ export class RegistrarActaPage implements OnInit {
   asignaciones: Asignacion[] = [];
   jrvId: number | null = null;
   dignidad: Dignidad = 'alcaldia';
-
   candidaturas: CandidaturaParaActa[] = [];
-  votos: Record<number, number> = {};
-
-  totalVotos = 0;
-  votosBlancos = 0;
-  votosNulos = 0;
-  totalVotantes = 0;
+  votos: Record<number, number | null> = {};
   blancos: number | null = 0;
   nulos: number | null = 0;
   sufragantes: number | null = null;
+  totalVotos = 0;
   archivo: File | null = null;
   vistaPrevia: string | null = null;
   fotoLegible = false;
@@ -133,14 +431,7 @@ export class RegistrarActaPage implements OnInit {
     this.mensajeError = '';
     try {
       this.candidaturas = await this.actasService.obtenerCandidaturas(this.dignidad);
-
-      console.log('=== REGISTRAR ACTA ===');
-      console.log('Candidaturas en la página:', this.candidaturas);
-      console.log('Cantidad en la página:', this.candidaturas.length);
-
-      this.votos = Object.fromEntries(
-        this.candidaturas.map((item) => [item.id, 0])
-      );
+      this.votos = Object.fromEntries(this.candidaturas.map((item) => [item.id, 0]));
       this.actualizarTotal();
     } catch (error) {
       this.mensajeError = this.mensaje(error, 'No se pudieron cargar las candidaturas.');
@@ -163,16 +454,6 @@ export class RegistrarActaPage implements OnInit {
     this.fotoLegible = false;
     this.vistaPrevia = URL.createObjectURL(file);
     this.mensajeError = '';
-  }
-
-  actualizarVoto(candidaturaId: number, valor: string | number | null | undefined): void {
-    const numero = Number(valor ?? 0);
-
-    this.votos[candidaturaId] = Number.isFinite(numero) && numero >= 0
-      ? Math.floor(numero)
-      : 0;
-
-    this.actualizarTotal();
   }
 
   actualizarTotal(): void {

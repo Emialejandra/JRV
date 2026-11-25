@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import {
@@ -352,7 +352,6 @@ export class DashboardPage implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly perfilesService = inject(PerfilesService);
   private readonly router = inject(Router);
-  private readonly cdr = inject(ChangeDetectorRef);
   dashboard: DashboardElectoral | null = null;
   recintoId: number | null = null;
   dignidad: 'alcaldia' | 'prefectura' = 'alcaldia';
@@ -371,7 +370,6 @@ export class DashboardPage implements OnInit {
   async cargar(): Promise<void> {
     this.cargando = true;
     this.mensajeError = '';
-    this.cdr.detectChanges();
     try {
       this.esAdministrador = (await this.perfilesService.obtenerMiPerfil())?.rol === 'administrador';
       this.dashboard = await this.dashboardService.obtener(this.recintoId ? { recinto_id: this.recintoId } : {});
@@ -379,7 +377,6 @@ export class DashboardPage implements OnInit {
       this.mensajeError = error instanceof Error ? error.message : 'No se pudo cargar el avance electoral.';
     } finally {
       this.cargando = false;
-      this.cdr.detectChanges();
     }
   }
 

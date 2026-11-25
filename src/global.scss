@@ -32,6 +32,133 @@
  * https://ionicframework.com/docs/theming/dark-mode
  */
 
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import '@ionic/angular/css/palettes/dark.system.css';
+/* Modo oscuro controlado por clase (.ion-palette-dark) desde ThemeService */
+@import '@ionic/angular/css/palettes/dark.class.css';
+
+
+/* ==========================================================================
+   Estilos globales: formularios, tarjetas y botón de tema
+   ========================================================================== */
+
+body {
+  background: var(--ion-background-color);
+  color: var(--ion-text-color);
+}
+
+ion-content {
+  --background: var(--app-bg);
+  --color: var(--ion-text-color);
+}
+
+ion-card {
+  --background: var(--app-surface);
+  --color: var(--ion-text-color);
+  border: 1px solid var(--app-border);
+  border-radius: 18px;
+  box-shadow: var(--app-shadow);
+}
+
+/* ---------- Inputs visibles en todos los formularios ---------- */
+ion-item:has(> ion-input),
+ion-item:has(> ion-select),
+ion-item:has(> ion-textarea),
+ion-item:has(> ion-datetime-button) {
+  --background: var(--app-input-bg);
+  --color: var(--ion-text-color);
+  --border-radius: 12px;
+  --inner-border-width: 0;
+  --padding-start: 14px;
+  --padding-end: 14px;
+  --min-height: 58px;
+  margin: 12px 0;
+  border: 1.5px solid var(--app-input-border);
+  border-radius: 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus-within {
+    border-color: var(--ion-color-primary);
+    box-shadow: 0 0 0 3px rgba(var(--ion-color-primary-rgb), 0.22);
+  }
+
+  &:hover {
+    border-color: var(--app-input-border-hover);
+  }
+}
+
+ion-input,
+ion-select,
+ion-textarea {
+  --color: var(--ion-text-color);
+  --placeholder-color: var(--app-placeholder);
+  --placeholder-opacity: 1;
+  color: var(--ion-text-color);
+}
+
+ion-input .label-text-wrapper,
+ion-select .label-text-wrapper,
+ion-textarea .label-text-wrapper {
+  color: var(--app-label);
+  font-weight: 600;
+}
+
+ion-input input,
+ion-textarea textarea {
+  color: var(--ion-text-color) !important;
+  caret-color: var(--ion-color-primary);
+}
+
+ion-select::part(icon) {
+  color: var(--app-label);
+  opacity: 1;
+}
+
+ion-searchbar {
+  --background: var(--app-input-bg);
+  --color: var(--ion-text-color);
+  --placeholder-color: var(--app-placeholder);
+  --placeholder-opacity: 1;
+  --icon-color: var(--app-label);
+  --border-radius: 12px;
+  --box-shadow: none;
+  .searchbar-input-container {
+    border: 1.5px solid var(--app-input-border);
+    border-radius: 12px;
+  }
+}
+
+/* Contraste de autocompletado del navegador en modo oscuro */
+.ion-palette-dark input:-webkit-autofill {
+  -webkit-text-fill-color: var(--ion-text-color);
+  -webkit-box-shadow: 0 0 0 1000px var(--app-input-bg) inset;
+}
+
+/* ---------- Botón flotante claro / oscuro ---------- */
+.theme-toggle {
+  position: fixed;
+  right: 14px;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  z-index: 10000;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--app-border);
+  border-radius: 50%;
+  background: var(--app-surface);
+  color: var(--ion-color-primary);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease;
+
+  &:hover {
+    transform: scale(1.06);
+  }
+  &:focus-visible {
+    outline: 3px solid rgba(var(--ion-color-primary-rgb), 0.45);
+    outline-offset: 2px;
+  }
+  ion-icon {
+    font-size: 24px;
+  }
+}

@@ -7,6 +7,25 @@ import {
     Validators
 } from '@angular/forms';
 import {
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonButton,
+  IonInput,
+  IonItem,
+  IonText,
+  IonSpinner
+} from '@ionic/angular';
+import { Router } from '@angular/router';
+
+import { AuthService } from '../../../core/services/auth.service';
+import { PerfilesService } from '../../../core/services/perfiles.service';
+
+@Component({
+  selector: 'app-cambio-password',
+  standalone: true,
+  imports: [
     IonHeader,
     IonToolbar,
     IonTitle,
@@ -15,30 +34,12 @@ import {
     IonInput,
     IonItem,
     IonText,
-    IonSpinner
-} from '@ionic/angular';
-import { Router } from '@angular/router';
-
-import { AuthService } from '../../../core/services/auth.service';
-
-@Component({
-    selector: 'app-cambio-password',
-    standalone: true,
-    imports: [
-        IonHeader,
-        IonToolbar,
-        IonTitle,
-        IonContent,
-        IonButton,
-        IonInput,
-        IonItem,
-        IonText,
-        IonSpinner,
-        ReactiveFormsModule,
-        CommonModule
-    ],
-    templateUrl: './cambio-password.page.html',
-    styleUrls: ['./cambio-password.page.scss']
+    IonSpinner,
+    ReactiveFormsModule,
+    CommonModule
+  ],
+  templateUrl: './cambio-password.page.html',
+  styleUrls: ['./cambio-password.page.scss']
 })
 export class CambioPasswordPage {
 
@@ -50,6 +51,7 @@ export class CambioPasswordPage {
     constructor(
         private fb: FormBuilder,
         private authService: AuthService,
+        private perfilesService: PerfilesService,
         private router: Router
     ) {
         this.formulario = this.fb.group({
@@ -63,7 +65,6 @@ export class CambioPasswordPage {
             ]]
         });
     }
-
 
     async cambiarPassword() {
         this.mensajeError = '';
@@ -88,22 +89,22 @@ export class CambioPasswordPage {
         this.cargando = true;
 
         try {
-            // Ejecutar el cambio de contraseña UNA SOLA VEZ.
-            const resultado =
-                await this.authService.cambiarPassword(password);
+            await this.authService.cambiarPassword(password);
 
             this.mensajeExito =
                 'Contraseña actualizada correctamente.';
 
-            if (!resultado?.rol) {
+            const perfil =
+                await this.perfilesService.obtenerMiPerfil();
+
+            if (!perfil) {
                 throw new Error(
-                    'No se pudo obtener el rol del usuario.'
+                    'No se pudo obtener el perfil del usuario.'
                 );
             }
 
-            // Redirigir utilizando el rol devuelto por el backend.
             await this.router.navigateByUrl(
-                this.obtenerRutaPorRol(resultado.rol),
+                this.obtenerRutaPorRol(perfil.rol),
                 { replaceUrl: true }
             );
 
@@ -122,7 +123,6 @@ export class CambioPasswordPage {
             this.cargando = false;
         }
     }
-
 
     private obtenerRutaPorRol(rol: string): string {
 
