@@ -173,17 +173,17 @@ Se deben verificar los siguientes escenarios de funcionamiento:
 
 Las pruebas de aceptación deben ejecutarse con cuentas de los tres roles y comprobarse tanto en la aplicación como en el backend.
 
-## 10. Configuración de demostración
+## 10 Credenciales de usuarios de prueba
 
-Para realizar las pruebas se utilizarán cuentas de demostración correspondientes a los tres perfiles:
+Para facilitar la revisión y evaluación del sistema, se proporcionan las siguientes credenciales de acceso:
 
-| Rol | Acceso |
-|---|---|
-| Coordinador provincial | Cuenta de demostración configurada en Supabase. |
-| Coordinador de recinto | Cuenta de demostración configurada en Supabase. |
-| Veedor de mesa | Cuenta de demostración configurada en Supabase. |
+| Rol | Usuario (Cédula) | Contraseña |
+|---|---|---|
+| Coordinador provincial | 1712496403 | Mercedes123 |
+| Coordinador de recinto | 1727736314 | 123456789 |
+| Veedor de mesa | 0400989745 | Emilia123 |
 
-Las credenciales de prueba se proporcionarán por un medio controlado y no se incluirán contraseñas reales ni secretos en este repositorio.
+**Nota:** Estas cuentas son de demostración y están destinadas exclusivamente a la evaluación del proyecto.
 
 ## 11. Documentación técnica
 
