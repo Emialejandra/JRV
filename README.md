@@ -194,6 +194,7 @@ docs/adr/
 ```
 
 Esta documentación recoge las decisiones relacionadas con las tecnologías, la arquitectura, la validación de información, el acceso a datos y las funcionalidades nativas.
+Y también contiene el anexo individual del uso de IA.
 
 ## 12. Uso de inteligencia artificial
 
