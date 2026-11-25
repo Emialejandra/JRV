@@ -1,0 +1,283 @@
+<ion-header>
+    <ion-toolbar color="primary">
+        <ion-buttons slot="start">
+            <ion-back-button defaultHref="/veedor/mesas" />
+        </ion-buttons>
+
+        <ion-title>Registrar acta</ion-title>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+    <main class="page-shell">
+        <p class="eyebrow">CAPTURA ELECTORAL</p>
+
+        <h1>Resultado de la JRV</h1>
+
+        <p class="intro">
+            Registra los votos tal como aparecen en el acta física.
+            Podrás revisar el total antes de guardar.
+        </p>
+
+        <!-- MESA Y DIGNIDAD -->
+        <ion-card>
+            <ion-card-content>
+                <ion-item>
+                    <ion-label position="stacked">
+                        Mesa asignada
+                    </ion-label>
+
+                    <ion-select [(ngModel)]="jrvId" interface="action-sheet" placeholder="Elige una JRV"
+                        [disabled]="asignaciones.length === 1">
+                        @for (
+                        asignacion of asignaciones;
+                        track asignacion.id
+                        ) {
+                        <ion-select-option [value]="asignacion.jrv_id">
+                            JRV
+                            {{ asignacion.jrv?.numero ?? asignacion.jrv_id }}
+                            ·
+                            {{ asignacion.recintos?.nombre }}
+                        </ion-select-option>
+                        }
+                    </ion-select>
+                </ion-item>
+
+                <ion-item>
+                    <ion-label position="stacked">
+                        Dignidad
+                    </ion-label>
+
+                    <ion-select [(ngModel)]="dignidad" (ionChange)="cargarCandidaturas()" interface="action-sheet">
+                        <ion-select-option value="alcaldia">
+                            Alcaldía
+                        </ion-select-option>
+
+                        <ion-select-option value="prefectura">
+                            Prefectura
+                        </ion-select-option>
+                    </ion-select>
+                </ion-item>
+            </ion-card-content>
+        </ion-card>
+
+        <!-- VOTOS -->
+        <ion-card>
+            <ion-card-header>
+                <ion-card-title>
+                    Votos por organización
+                </ion-card-title>
+            </ion-card-header>
+
+            <ion-card-content>
+                @if (cargandoCandidaturas) {
+                <div class="loading">
+                    <ion-spinner name="crescent" />
+                    <span>Cargando candidaturas…</span>
+                </div>
+                } @else if (candidaturas.length !== 5) {
+                <ion-text color="danger">
+                    <p>
+                        Se esperaban cinco candidaturas activas para
+                        esta dignidad y se encontraron
+                        {{ candidaturas.length }}.
+                        Revisa la precarga electoral.
+                    </p>
+                </ion-text>
+                } @else {
+                @for (
+                candidatura of candidaturas;
+                track candidatura.id
+                ) {
+                <ion-item>
+                    <ion-label class="ion-text-wrap">
+                        <strong>
+                            {{
+                            candidatura.organizaciones?.sigla ||
+                            candidatura.organizaciones?.nombre
+                            }}
+                        </strong>
+
+                        <p>
+                            {{ candidatura.nombres }}
+                            {{ candidatura.apellidos }}
+                        </p>
+                    </ion-label>
+
+                    <ion-input slot="end" type="number" inputmode="numeric" min="0" step="1" aria-label="Votos"
+                        [(ngModel)]="votos[candidatura.id]" (ionInput)="actualizarTotal()" />
+                </ion-item>
+                }
+                }
+
+                <ion-item>
+                    <ion-label position="stacked">
+                        Votos blancos
+                    </ion-label>
+
+                    <ion-input type="number" inputmode="numeric" min="0" step="1" [(ngModel)]="blancos"
+                        (ionInput)="actualizarTotal()" />
+                </ion-item>
+
+                <ion-item>
+                    <ion-label position="stacked">
+                        Votos nulos
+                    </ion-label>
+
+                    <ion-input type="number" inputmode="numeric" min="0" step="1" [(ngModel)]="nulos"
+                        (ionInput)="actualizarTotal()" />
+                </ion-item>
+
+                <ion-item>
+                    <ion-label position="stacked">
+                        Total de sufragantes según el acta
+                    </ion-label>
+
+                    <ion-input type="number" inputmode="numeric" min="0" step="1" [(ngModel)]="sufragantes"
+                        (ionInput)="actualizarTotal()" />
+                </ion-item>
+
+                <div class="total-row">
+                    <span>Votos contabilizados</span>
+
+                    <ion-badge [color]="
+                  cuadraTotal
+                    ? 'success'
+                    : 'warning'
+                ">
+                        {{ totalVotos }} /
+                        {{ sufragantes || 0 }}
+                    </ion-badge>
+                </div>
+            </ion-card-content>
+        </ion-card>
+
+        <!-- FOTO Y UBICACIÓN -->
+        <!-- FOTO DEL ACTA -->
+        <ion-button expand="block" (click)="tomarFotografia()" [disabled]="guardando">
+            <ion-icon name="camera-outline" slot="start"></ion-icon>
+
+            {{
+            archivo
+            ? 'Tomar otra fotografía'
+            : 'Abrir cámara y fotografiar acta'
+            }}
+        </ion-button>
+
+        <p class="gps-note">
+            Utiliza la cámara trasera para fotografiar el acta física.
+            Formatos JPG o PNG · máximo 10 MB.
+        </p>
+
+        @if (vistaPrevia) {
+        <img class="photo-preview" [src]="vistaPrevia" alt="Vista previa de la fotografía del acta" />
+
+        <ion-checkbox [(ngModel)]="fotoLegible" labelPlacement="end">
+            Confirmo que el texto y los números se leen
+            con claridad.
+        </ion-checkbox>
+
+        <ion-checkbox [(ngModel)]="fotoLegible" labelPlacement="end">
+            Confirmo que el texto y los números se leen
+            con claridad.
+        </ion-checkbox>
+        }
+
+        <!-- GPS -->
+        <ion-button expand="block" fill="outline" (click)="capturarUbicacion()" [disabled]="obteniendoGps">
+            @if (obteniendoGps) {
+            <ion-spinner name="crescent" />
+            } @else {
+            <span>⌖</span>
+            }
+
+            {{
+            coordenadas
+            ? 'Ubicación obtenida'
+            : 'Guardar mi ubicación GPS'
+            }}
+        </ion-button>
+
+        <!-- CONFIRMACIÓN DE UBICACIÓN -->
+        @if (coordenadas) {
+        <div class="ubicacion-confirmada">
+            <strong>
+                ✓ Ubicación obtenida correctamente
+            </strong>
+
+            <p class="gps-note">
+                Latitud:
+                {{
+                coordenadas.latitud
+                | number: '1.4-6'
+                }}
+
+                <br />
+
+                Longitud:
+                {{
+                coordenadas.longitud
+                | number: '1.4-6'
+                }}
+            </p>
+        </div>
+        } @else {
+        <p class="gps-note">
+            Debes obtener tu ubicación GPS antes de
+            guardar el acta.
+        </p>
+        }
+
+        <!-- OBSERVACIONES -->
+        <ion-item>
+            <ion-label position="stacked">
+                Observaciones (opcional)
+            </ion-label>
+
+            <ion-textarea [(ngModel)]="observaciones" autoGrow="true" maxlength="2000"
+                placeholder="Describe novedades visibles en el acta" />
+        </ion-item>
+        </ion-card-content>
+        </ion-card>
+
+        <!-- ERROR -->
+        @if (mensajeError) {
+        <ion-card color="danger">
+            <ion-card-content>
+                {{ mensajeError }}
+            </ion-card-content>
+        </ion-card>
+        }
+
+        <!-- ÉXITO -->
+        @if (mensajeExito) {
+        <ion-card color="success">
+            <ion-card-content>
+                {{ mensajeExito }}
+
+                @if (guardadoLocal) {
+                <ion-button fill="clear" routerLink="/veedor/actas/pendientes">
+                    Ver pendientes
+                </ion-button>
+                }
+            </ion-card-content>
+        </ion-card>
+        }
+
+        <!-- GUARDAR -->
+        <ion-button class="submit-button" expand="block" (click)="guardar()" [disabled]="
+            guardando || !puedeGuardar
+          ">
+            @if (guardando) {
+            <ion-spinner name="crescent" />
+            } @else {
+            Guardar acta
+            }
+        </ion-button>
+
+        <p class="fine-print">
+            Al guardar se verifica nuevamente la suma de votos
+            en el servidor.
+        </p>
+    </main>
+</ion-content>
