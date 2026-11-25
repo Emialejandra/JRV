@@ -5,7 +5,7 @@ import { SupabaseService } from './supabase.service';
   providedIn: 'root',
 })
 export class AuthService {
-  constructor(private supabaseService: SupabaseService) {}
+  constructor(private supabaseService: SupabaseService) { }
 
   async iniciarSesion(cedula: string, password: string) {
     const { data, error } = await this.supabaseService.client.functions.invoke('login-cedula', {
@@ -93,9 +93,10 @@ export class AuthService {
   }
 
   async enviarRecuperacionPassword(email: string) {
-    const { data, error } = await this.supabaseService.client.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/cambio-password`,
-    });
+    const { data, error } =
+      await this.supabaseService.client.auth.resetPasswordForEmail(email, {
+        redirectTo: 'io.ionic.starter://auth/callback',
+      });
 
     if (error) {
       throw error;

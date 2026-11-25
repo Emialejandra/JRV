@@ -60,7 +60,7 @@ export class RecuperarPasswordPage {
     });
   }
 
-  async recuperarPassword() {
+  async recuperarPassword(): Promise<void> {
 
     this.mensajeError = '';
     this.mensajeExito = '';
@@ -74,12 +74,13 @@ export class RecuperarPasswordPage {
 
     try {
 
-      await this.authService.enviarRecuperacionPassword(
-        this.formulario.value.email
-      );
+      const email = this.formulario.value.email?.trim();
+
+      await this.authService.enviarRecuperacionPassword(email);
 
       this.mensajeExito =
-        'Se ha enviado un enlace de recuperación al correo indicado.';
+        'Se ha enviado un enlace de recuperación al correo indicado. ' +
+        'Abre el enlace desde tu teléfono para continuar con el cambio de contraseña.';
 
     } catch (error: any) {
 
@@ -97,7 +98,7 @@ export class RecuperarPasswordPage {
     }
   }
 
-  volverLogin() {
-    this.router.navigate(['/login']);
+  volverLogin(): void {
+    this.router.navigate(['/recuperar-password']);
   }
 }
