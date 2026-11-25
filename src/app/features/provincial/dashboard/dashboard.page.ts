@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import {
@@ -352,6 +352,8 @@ export class DashboardPage implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly perfilesService = inject(PerfilesService);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   dashboard: DashboardElectoral | null = null;
   recintoId: number | null = null;
   dignidad: 'alcaldia' | 'prefectura' = 'alcaldia';
@@ -370,13 +372,31 @@ export class DashboardPage implements OnInit {
   async cargar(): Promise<void> {
     this.cargando = true;
     this.mensajeError = '';
+
+    this.cdr.detectChanges();
+
     try {
-      this.esAdministrador = (await this.perfilesService.obtenerMiPerfil())?.rol === 'administrador';
-      this.dashboard = await this.dashboardService.obtener(this.recintoId ? { recinto_id: this.recintoId } : {});
+      const [perfil, dashboard] = await Promise.all([
+        this.perfilesService.obtenerMiPerfil(),
+        this.dashboardService.obtener(
+          this.recintoId ? { recinto_id: this.recintoId } : {}
+        )
+      ]);
+
+      this.esAdministrador = perfil?.rol === 'administrador';
+      this.dashboard = dashboard;
+
     } catch (error) {
-      this.mensajeError = error instanceof Error ? error.message : 'No se pudo cargar el avance electoral.';
+      console.error('Error al cargar dashboard provincial:', error);
+
+      this.mensajeError =
+        error instanceof Error
+          ? error.message
+          : 'No se pudo cargar el avance electoral.';
+
     } finally {
       this.cargando = false;
+      this.cdr.detectChanges();
     }
   }
 

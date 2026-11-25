@@ -1,12 +1,35 @@
+
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
-    FormBuilder,
-    FormGroup,
-    ReactiveFormsModule,
-    Validators
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators
 } from '@angular/forms';
 import {
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonButton,
+  IonInput,
+  IonItem,
+  IonText,
+  IonSpinner
+} from '@ionic/angular';
+import { Router } from '@angular/router';
+
+import { AuthService } from '../../../core/services/auth.service';
+import { PerfilesService } from '../../../core/services/perfiles.service';
+
+@Component({
+  selector: 'app-login',
+  templateUrl: './login.page.html',
+  styleUrls: ['./login.page.scss'],
+  standalone: true,
+  imports: [
+    CommonModule,
     IonHeader,
     IonToolbar,
     IonTitle,
@@ -15,153 +38,147 @@ import {
     IonInput,
     IonItem,
     IonText,
-    IonSpinner
-} from '@ionic/angular';
-import { Router } from '@angular/router';
-
-import { AuthService } from '../../../core/services/auth.service';
-import { PerfilesService } from '../../../core/services/perfiles.service';
-
-@Component({
-    selector: 'app-login',
-    templateUrl: './login.page.html',
-    styleUrls: ['./login.page.scss'],
-    standalone: true,
-    imports: [
-        CommonModule,
-        IonHeader,
-        IonToolbar,
-        IonTitle,
-        IonContent,
-        IonButton,
-        IonInput,
-        IonItem,
-        IonText,
-        IonSpinner,
-        ReactiveFormsModule
-    ]
+    IonSpinner,
+    ReactiveFormsModule
+  ]
 })
 export class LoginPage {
 
-    formulario: FormGroup;
-    cargando = false;
-    mensajeError = '';
+  formulario: FormGroup;
+  cargando = false;
+  mensajeError = '';
 
-    constructor(
-        private fb: FormBuilder,
-        private authService: AuthService,
-        private perfilesService: PerfilesService,
-        private router: Router
-    ) {
-        this.formulario = this.fb.group({
-            cedula: ['', [
-                Validators.required,
-                Validators.pattern(/^\d{10}$/)
-            ]],
+  constructor(
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private perfilesService: PerfilesService,
+    private router: Router
+  ) {
+    this.formulario = this.fb.group({
+      cedula: [
+        '',
+        [
+          Validators.required,
+          Validators.pattern(/^\d{10}$/)
+        ]
+      ],
 
-            password: ['', [
-                Validators.required,
-                Validators.minLength(6)
-            ]]
-        });
+      password: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(6)
+        ]
+      ]
+    });
+  }
+
+  async iniciarSesion() {
+
+    this.mensajeError = '';
+
+    if (this.formulario.invalid) {
+      this.formulario.markAllAsTouched();
+      return;
     }
 
-    async iniciarSesion() {
+    this.cargando = true;
 
-        this.mensajeError = '';
+    try {
 
-        if (this.formulario.invalid) {
-            this.formulario.markAllAsTouched();
-            return;
-        }
+      // 1. Autenticación mediante la Edge Function.
+      // setSession devuelve el usuario y su ID.
+      const { user } = await this.authService.iniciarSesion(
+        this.formulario.value.cedula,
+        this.formulario.value.password
+      );
 
-        this.cargando = true;
+      if (!user) {
+        throw new Error(
+          'No se pudo obtener el usuario autenticado.'
+        );
+      }
 
-        try {
+      // 2. Consultamos directamente el perfil mediante
+      // el ID obtenido en el paso anterior.
+      // No volvemos a llamar a auth.getUser().
+      const perfil =
+        await this.perfilesService.obtenerPerfilPorId(user.id);
 
-            const { user } = await this.authService.iniciarSesion(
-                this.formulario.value.cedula,
-                this.formulario.value.password
-            );
+      if (!perfil) {
 
-            if (!user) {
-                throw new Error(
-                    'No se pudo obtener el usuario autenticado.'
-                );
-            }
+        await this.authService.cerrarSesion();
 
-            const perfil =
-                await this.perfilesService.obtenerMiPerfil();
+        throw new Error(
+          'No existe un perfil asociado al usuario.'
+        );
+      }
 
-            if (!perfil) {
-                await this.authService.cerrarSesion();
+      // 3. Verificamos si el usuario está activo.
+      if (!perfil.activo) {
 
-                throw new Error(
-                    'No existe un perfil asociado al usuario.'
-                );
-            }
+        await this.authService.cerrarSesion();
 
-            if (!perfil.activo) {
-                await this.authService.cerrarSesion();
+        throw new Error(
+          'El usuario se encuentra inactivo.'
+        );
+      }
 
-                throw new Error(
-                    'El usuario se encuentra inactivo.'
-                );
-            }
+      // 4. Verificamos si debe cambiar su contraseña.
+      if (perfil.primer_acceso) {
 
-            if (perfil.primer_acceso) {
+        await this.router.navigateByUrl(
+          '/cambio-password',
+          { replaceUrl: true }
+        );
 
-                await this.router.navigateByUrl(
-                    '/cambio-password',
-                    { replaceUrl: true }
-                );
+        return;
+      }
 
-                return;
-            }
+      // 5. Redirigimos según el rol.
+      await this.router.navigateByUrl(
+        this.obtenerRutaPorRol(perfil.rol),
+        { replaceUrl: true }
+      );
 
-            await this.router.navigateByUrl(
-                this.obtenerRutaPorRol(perfil.rol),
-                { replaceUrl: true }
-            );
+    } catch (error: any) {
 
-        } catch (error: any) {
+      console.error(
+        'Error al iniciar sesión:',
+        error
+      );
 
-            console.error(
-                'Error al iniciar sesión:',
-                error
-            );
+      this.mensajeError =
+        error?.message ||
+        'No fue posible iniciar sesión. Verifica tus credenciales.';
 
-            this.mensajeError =
-                error?.message ||
-                'No fue posible iniciar sesión. Verifica tus credenciales.';
+    } finally {
 
-        } finally {
+      this.cargando = false;
 
-            this.cargando = false;
-
-        }
     }
+  }
 
-    private obtenerRutaPorRol(rol: string): string {
+  private obtenerRutaPorRol(rol: string): string {
 
-        switch (rol) {
+    switch (rol) {
 
-            case 'administrador':
-            case 'coordinador_provincial':
-                return '/provincial/dashboard';
+      case 'administrador':
+      case 'coordinador_provincial':
+        return '/provincial/dashboard';
 
-            case 'coordinador_recinto':
-                return '/recinto/dashboard';
+      case 'coordinador_recinto':
+        return '/recinto/dashboard';
 
-            case 'veedor':
-                return '/veedor/mesas';
+      case 'veedor':
+        return '/veedor/mesas';
 
-            default:
-                return '/acceso-denegado';
-        }
+      default:
+        return '/acceso-denegado';
     }
+  }
 
-    irARecuperarPassword() {
-        this.router.navigate(['/recuperar-password']);
-    }
+  irARecuperarPassword() {
+    this.router.navigate(['/recuperar-password']);
+  }
 }

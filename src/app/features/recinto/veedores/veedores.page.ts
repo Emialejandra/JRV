@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -276,6 +276,8 @@ interface JrvDisponible {
 })
 export class VeedoresPage implements OnInit {
 
+  private readonly cdr = inject(ChangeDetectorRef);
+
   jrvDisponibles: JrvDisponible[] = [];
   veedores: VeedorListado[] = [];
 
@@ -296,7 +298,7 @@ export class VeedoresPage implements OnInit {
 
   constructor(
     private veedoresService: VeedoresService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.cargarDatos();
@@ -305,6 +307,8 @@ export class VeedoresPage implements OnInit {
   async cargarDatos(): Promise<void> {
     this.cargando = true;
     this.mensajeError = '';
+
+    this.cdr.detectChanges();
 
     try {
       const [jrv, veedores] = await Promise.all([
@@ -321,6 +325,9 @@ export class VeedoresPage implements OnInit {
         this.cambiosJrv[veedor.asignacion_id] = null;
       }
 
+      console.log('JRV disponibles:', this.jrvDisponibles);
+      console.log('Veedores recibidos:', this.veedores);
+
     } catch (error) {
       console.error('Error al cargar gestión de veedores:', error);
 
@@ -328,8 +335,10 @@ export class VeedoresPage implements OnInit {
         error instanceof Error
           ? error.message
           : 'No se pudo cargar la información.';
+
     } finally {
       this.cargando = false;
+      this.cdr.detectChanges();
     }
   }
 

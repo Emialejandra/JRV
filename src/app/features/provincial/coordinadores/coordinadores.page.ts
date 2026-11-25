@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../../core/services/supabase.service';
@@ -73,6 +74,7 @@ export class CoordinadoresPage implements OnInit {
   constructor(
     private supabaseService: SupabaseService,
     private alertController: AlertController,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit() {
@@ -82,6 +84,9 @@ export class CoordinadoresPage implements OnInit {
   async cargarRecintos() {
     this.cargando = true;
     this.mensaje = '';
+
+    // Actualizar la vista antes de iniciar la petición.
+    this.cdr.detectChanges();
 
     try {
       const { data, error } = await this.supabaseService.client
@@ -95,9 +100,16 @@ export class CoordinadoresPage implements OnInit {
       this.recintos = data ?? [];
     } catch (error: any) {
       console.error('Error cargando recintos:', error);
-      this.mostrarMensaje('No se pudieron cargar los recintos. Verifica los permisos.', 'danger');
+
+      this.mostrarMensaje(
+        'No se pudieron cargar los recintos. Verifica los permisos.',
+        'danger',
+      );
     } finally {
       this.cargando = false;
+
+      // Actualizar la vista cuando finalice la petición.
+      this.cdr.detectChanges();
     }
   }
 
@@ -111,23 +123,35 @@ export class CoordinadoresPage implements OnInit {
       !this.coordinador.email.trim() ||
       !this.coordinador.recinto_id
     ) {
-      this.mostrarMensaje('Completa todos los campos obligatorios.', 'danger');
+      this.mostrarMensaje(
+        'Completa todos los campos obligatorios.',
+        'danger',
+      );
+
+      this.cdr.detectChanges();
       return;
     }
 
     this.guardando = true;
 
+    // Mostrar inmediatamente el estado de guardado.
+    this.cdr.detectChanges();
+
     try {
-      const { data, error } = await this.supabaseService.client.functions.invoke('crear-coordinador', {
-        body: {
-          nombres: this.coordinador.nombres,
-          apellidos: this.coordinador.apellidos,
-          cedula: this.coordinador.cedula,
-          email: this.coordinador.email,
-          telefono: this.coordinador.telefono,
-          recinto_id: this.coordinador.recinto_id,
-        },
-      });
+      const { data, error } =
+        await this.supabaseService.client.functions.invoke(
+          'crear-coordinador',
+          {
+            body: {
+              nombres: this.coordinador.nombres,
+              apellidos: this.coordinador.apellidos,
+              cedula: this.coordinador.cedula,
+              email: this.coordinador.email,
+              telefono: this.coordinador.telefono,
+              recinto_id: this.coordinador.recinto_id,
+            },
+          },
+        );
 
       if (error) {
         let mensaje = error.message;
@@ -135,7 +159,10 @@ export class CoordinadoresPage implements OnInit {
         try {
           const respuesta = await error.context.json();
 
-          mensaje = respuesta?.error?.message || respuesta?.error || error.message;
+          mensaje =
+            respuesta?.error?.message ||
+            respuesta?.error ||
+            error.message;
         } catch {
           mensaje = error.message;
         }
@@ -147,17 +174,26 @@ export class CoordinadoresPage implements OnInit {
         throw new Error('El servidor no devolvió una respuesta.');
       }
 
-      this.mostrarMensaje(data?.data?.mensaje || 'Coordinador registrado correctamente.', 'success');
+      this.mostrarMensaje(
+        data?.data?.mensaje ||
+          'Coordinador registrado correctamente.',
+        'success',
+      );
 
       this.limpiarFormulario();
     } catch (error: any) {
       console.error('Error creando coordinador:', error);
 
-      const mensaje = error?.message || 'Ocurrió un error inesperado al registrar el coordinador.';
+      const mensaje =
+        error?.message ||
+        'Ocurrió un error inesperado al registrar el coordinador.';
 
       await this.mostrarAlerta('No se pudo registrar', mensaje);
     } finally {
       this.guardando = false;
+
+      // Refrescar la vista al finalizar el registro.
+      this.cdr.detectChanges();
     }
   }
 
@@ -170,9 +206,14 @@ export class CoordinadoresPage implements OnInit {
       telefono: '',
       recinto_id: null,
     };
+
+    this.cdr.detectChanges();
   }
 
-  mostrarMensaje(mensaje: string, tipo: 'success' | 'danger') {
+  mostrarMensaje(
+    mensaje: string,
+    tipo: 'success' | 'danger',
+  ) {
     this.mensaje = mensaje;
     this.tipoMensaje = tipo;
   }

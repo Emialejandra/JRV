@@ -1,3 +1,4 @@
+
 import { Injectable } from '@angular/core';
 import { SupabaseService } from './supabase.service';
 import { Perfil } from '../models/perfil.model';
@@ -11,22 +12,24 @@ export class PerfilesService {
     private supabaseService: SupabaseService
   ) {}
 
-  async obtenerMiPerfil(): Promise<Perfil | null> {
+  /**
+   * Obtiene el perfil utilizando directamente el ID
+   * del usuario autenticado.
+   *
+   * Evita ejecutar auth.getUser() cuando ya conocemos
+   * el ID del usuario.
+   */
+  async obtenerPerfilPorId(userId: string): Promise<Perfil | null> {
 
-    const {
-      data: { user }
-    } = await this.supabaseService.client.auth.getUser();
-
-    if (!user) {
+    if (!userId) {
       return null;
     }
 
-    const { data, error } =
-      await this.supabaseService.client
-        .from('perfiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+    const { data, error } = await this.supabaseService.client
+      .from('perfiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
 
     if (error) {
       throw error;
@@ -35,15 +38,43 @@ export class PerfilesService {
     return data;
   }
 
+  /**
+   * Obtiene el perfil de la sesión actual.
+   * getSession utiliza la sesión local, evitando una
+   * petición adicional a auth/v1/user.
+   */
+  async obtenerMiPerfil(): Promise<Perfil | null> {
+
+    const { data, error } =
+      await this.supabaseService.client.auth.getSession();
+
+    if (error) {
+      throw error;
+    }
+
+    const userId = data.session?.user?.id;
+
+    if (!userId) {
+      return null;
+    }
+
+    return this.obtenerPerfilPorId(userId);
+  }
+
   async actualizarPerfil(
     datos: Partial<Perfil>
   ) {
 
-    const {
-      data: { user }
-    } = await this.supabaseService.client.auth.getUser();
+    const { data: sessionData, error: sessionError } =
+      await this.supabaseService.client.auth.getSession();
 
-    if (!user) {
+    if (sessionError) {
+      throw sessionError;
+    }
+
+    const userId = sessionData.session?.user?.id;
+
+    if (!userId) {
       throw new Error('Usuario no autenticado');
     }
 
@@ -51,7 +82,7 @@ export class PerfilesService {
       await this.supabaseService.client
         .from('perfiles')
         .update(datos)
-        .eq('id', user.id)
+        .eq('id', userId)
         .select()
         .single();
 

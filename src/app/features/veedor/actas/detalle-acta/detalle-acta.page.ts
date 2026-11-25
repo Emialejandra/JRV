@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
@@ -218,9 +218,15 @@ interface ActaDetalle {
                   <p>{{ item.fecha_registro | date: 'short' }}</p>
                   <small>{{ item.total_votantes }} sufragantes</small>
                 </div>
-                <ion-button fill="outline" [routerLink]="['/veedor/actas/detalle']" [queryParams]="{ actaId: item.id }"
-                  >Ver detalle</ion-button
-                >
+                <ion-button
+  fill="outline"
+  [routerLink]="[rutaDetalle]"
+  [queryParams]="{ actaId: item.id }"
+>
+  Ver detalle
+</ion-button>
+                
+
               </ion-card-content></ion-card
             >
           }
@@ -321,6 +327,12 @@ export class DetalleActaPage implements OnInit {
   private readonly router = inject(Router);
   private readonly actasService = inject(ActasService);
   private readonly perfilesService = inject(PerfilesService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+
+  // Ruta de destino según el módulo desde el que se consulta.
+  rutaDetalle = '/veedor/actas/detalle';
+
   actas: ActaDetalle[] = [];
   acta: ActaDetalle | null = null;
   cargando = false;
@@ -337,12 +349,22 @@ export class DetalleActaPage implements OnInit {
   fotoNueva: File | null = null;
 
   ngOnInit(): void {
-    this.volverA = this.router.url.startsWith('/recinto')
-      ? '/recinto/dashboard'
-      : this.router.url.startsWith('/provincial')
-        ? '/provincial/dashboard'
-        : '/veedor/mesas';
-    this.route.queryParamMap.subscribe(() => void this.cargar());
+    const url = this.router.url;
+
+    if (url.startsWith('/provincial')) {
+      this.rutaDetalle = '/provincial/actas/detalle';
+      this.volverA = '/provincial/dashboard';
+    } else if (url.startsWith('/recinto')) {
+      this.rutaDetalle = '/recinto/actas/detalle';
+      this.volverA = '/recinto/dashboard';
+    } else {
+      this.rutaDetalle = '/veedor/actas/detalle';
+      this.volverA = '/veedor/mesas';
+    }
+
+    this.route.queryParamMap.subscribe(() => {
+      void this.cargar();
+    });
   }
 
   nombreDignidad(value: string): string {
@@ -395,6 +417,8 @@ export class DetalleActaPage implements OnInit {
     }
     this.guardando = true;
     this.mensajeError = '';
+
+    this.cdr.detectChanges();
     try {
       const photo = this.fotoNueva
         ? await this.actasService.subirFotografia(this.acta.jrv_id, this.acta.dignidad, this.fotoNueva)
@@ -421,6 +445,7 @@ export class DetalleActaPage implements OnInit {
       this.mensajeError = error instanceof Error ? error.message : 'No se pudo corregir el acta.';
     } finally {
       this.guardando = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -430,22 +455,41 @@ export class DetalleActaPage implements OnInit {
     this.acta = null;
     this.actas = [];
     this.puedeCorregir = false;
+
+    // Actualizar inmediatamente el indicador de carga.
+    this.cdr.detectChanges();
+
     const params = this.route.snapshot.queryParamMap;
     const actaId = Number(params.get('actaId'));
     const jrvId = Number(params.get('jrvId'));
+
     try {
       const profile = await this.perfilesService.obtenerMiPerfil();
       this.miPerfilId = profile?.id ?? '';
-      if (actaId > 0) this.acta = await this.actasService.obtenerActa<ActaDetalle>(actaId);
-      else if (jrvId > 0) this.actas = await this.actasService.obtenerActasPorJrv<ActaDetalle[]>(jrvId);
-      else this.mensajeError = 'Selecciona una JRV desde la lista de tus mesas.';
+
+      if (actaId > 0) {
+        this.acta = await this.actasService.obtenerActa<ActaDetalle>(actaId);
+      } else if (jrvId > 0) {
+        this.actas = await this.actasService.obtenerActasPorJrv<ActaDetalle[]>(jrvId);
+      } else {
+        this.mensajeError = 'Selecciona una JRV desde la lista de tus mesas.';
+      }
+
       this.puedeCorregir =
         profile?.rol === 'coordinador_recinto' ||
         (profile?.rol === 'veedor' && this.acta?.registrado_por === this.miPerfilId);
+
     } catch (error) {
-      this.mensajeError = error instanceof Error ? error.message : 'No se pudo cargar el acta.';
+      console.error('Error cargando detalle de acta:', error);
+
+      this.mensajeError =
+        error instanceof Error ? error.message : 'No se pudo cargar el acta.';
+
     } finally {
       this.cargando = false;
+
+      // Actualizar los datos al terminar la consulta.
+      this.cdr.detectChanges();
     }
   }
 }

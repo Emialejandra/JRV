@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
   IonBadge,
@@ -295,6 +295,7 @@ export class DashboardPage implements OnInit {
   private readonly veedoresService = inject(VeedoresService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
   dashboard: DashboardElectoral | null = null;
   recinto: RecintoResumen | null = null;
   cargando = false;
@@ -307,14 +308,32 @@ export class DashboardPage implements OnInit {
   async cargar(): Promise<void> {
     this.cargando = true;
     this.mensajeError = '';
+
+    // Mostrar inmediatamente el estado de carga.
+    this.cdr.detectChanges();
+
     try {
-      const recintoId = await this.veedoresService.obtenerMiRecinto();
-      this.dashboard = await this.dashboardService.obtener({ recinto_id: recintoId });
-      this.recinto = this.dashboard.recintos[0] ?? null;
+      const dashboard = await this.dashboardService.obtener();
+
+      this.dashboard = dashboard;
+      this.recinto = dashboard.recintos[0] ?? null;
+
+      console.log('Dashboard recibido:', dashboard);
+      console.log('Recinto recibido:', this.recinto);
+
     } catch (error) {
-      this.mensajeError = error instanceof Error ? error.message : 'No se pudo cargar el recinto.';
+      console.error('Error al cargar dashboard:', error);
+
+      this.mensajeError =
+        error instanceof Error
+          ? error.message
+          : 'No se pudo cargar el recinto.';
+
     } finally {
       this.cargando = false;
+
+      // Actualizar la pantalla al terminar la operación asíncrona.
+      this.cdr.detectChanges();
     }
   }
 

@@ -1,4 +1,5 @@
-import { Component, inject, type OnInit } from '@angular/core';
+
+import { Component, inject, type OnInit, ChangeDetectorRef } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
   IonHeader,
@@ -50,8 +51,17 @@ import { AuthService } from '../../../core/services/auth.service';
       <h1>Mis JRV asignadas</h1>
       <p>Consulta las juntas receptoras del voto asignadas a tu cuenta.</p>
 
-      <ion-button routerLink="/veedor/actas/pendientes" fill="outline">Actas pendientes de sincronizar</ion-button>
-      <ion-button fill="outline" (click)="cargarAsignaciones()" [disabled]="cargando"> Actualizar </ion-button>
+      <ion-button routerLink="/veedor/actas/pendientes" fill="outline">
+        Actas pendientes de sincronizar
+      </ion-button>
+
+      <ion-button
+        fill="outline"
+        (click)="cargarAsignaciones()"
+        [disabled]="cargando"
+      >
+        Actualizar
+      </ion-button>
 
       @if (cargando) {
         <div class="ion-text-center ion-padding" role="status">
@@ -64,33 +74,57 @@ import { AuthService } from '../../../core/services/auth.service';
         <ion-card color="danger">
           <ion-card-content>
             <ion-text color="light">{{ mensajeError }}</ion-text>
-            <ion-button color="light" fill="outline" (click)="cargarAsignaciones()"> Reintentar </ion-button>
+            <ion-button
+              color="light"
+              fill="outline"
+              (click)="cargarAsignaciones()"
+            >
+              Reintentar
+            </ion-button>
           </ion-card-content>
         </ion-card>
       } @else if (!cargando && asignaciones.length === 0) {
         <ion-card>
-          <ion-card-content> Aún no tienes mesas asignadas. Contacta al coordinador de tu recinto. </ion-card-content>
+          <ion-card-content>
+            Aún no tienes mesas asignadas. Contacta al coordinador de tu recinto.
+          </ion-card-content>
         </ion-card>
       }
 
       @for (asignacion of asignaciones; track asignacion.id) {
         <ion-card>
           <ion-card-header>
-            <ion-card-title> JRV {{ asignacion.jrv?.numero ?? asignacion.jrv_id }} </ion-card-title>
+            <ion-card-title>
+              JRV {{ asignacion.jrv?.numero ?? asignacion.jrv_id }}
+            </ion-card-title>
           </ion-card-header>
+
           <ion-card-content>
-            <p><strong>Recinto:</strong> {{ asignacion.recintos?.nombre || 'No disponible' }}</p>
-            <p><strong>Código:</strong> {{ asignacion.jrv?.codigo || 'No registrado' }}</p>
+            <p>
+              <strong>Recinto:</strong>
+              {{ asignacion.recintos?.nombre || 'No disponible' }}
+            </p>
+
+            <p>
+              <strong>Código:</strong>
+              {{ asignacion.jrv?.codigo || 'No registrado' }}
+            </p>
+
             <p>
               <strong>Estado:</strong>
               <ion-badge [color]="obtenerColorEstado(asignacion.jrv?.estado)">
                 {{ obtenerTextoEstado(asignacion.jrv?.estado) }}
               </ion-badge>
             </p>
+
             <div class="mesa-actions">
-              <ion-button [routerLink]="['/veedor/actas/registrar']" [queryParams]="{ jrvId: asignacion.jrv_id }">
+              <ion-button
+                [routerLink]="['/veedor/actas/registrar']"
+                [queryParams]="{ jrvId: asignacion.jrv_id }"
+              >
                 Registrar acta
               </ion-button>
+
               <ion-button
                 fill="outline"
                 [routerLink]="['/veedor/actas/detalle']"
@@ -109,25 +143,30 @@ import { AuthService } from '../../../core/services/auth.service';
       ion-content {
         --background: #f4f7fb;
       }
+
       h1 {
         margin: 8px 0;
         font-size: 27px;
         font-weight: 800;
         color: #172b4d;
       }
+
       ion-content > p {
         color: var(--ion-color-medium);
       }
+
       ion-card {
         border-radius: 18px;
         box-shadow: 0 4px 18px #172b4d0b;
       }
+
       .mesa-actions {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
         margin-top: 14px;
       }
+
       @media (min-width: 760px) {
         ion-content {
           --padding-start: max(24px, calc((100vw - 760px) / 2));
@@ -141,6 +180,7 @@ export class MesasPage implements OnInit {
   private readonly asignacionesService = inject(AsignacionesService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   asignaciones: Asignacion[] = [];
   cargando = false;
@@ -154,23 +194,41 @@ export class MesasPage implements OnInit {
     this.cargando = true;
     this.mensajeError = '';
 
+    // Actualizar inmediatamente el indicador de carga.
+    this.cdr.detectChanges();
+
     try {
-      const resultado = await this.asignacionesService.obtenerMisAsignaciones();
+      const resultado =
+        await this.asignacionesService.obtenerMisAsignaciones();
+
       this.asignaciones = resultado.filter(
         (asignacion) =>
-          asignacion.tipo_asignacion === 'veedor' && asignacion.jrv_id !== null && asignacion.jrv_id !== undefined,
+          asignacion.tipo_asignacion === 'veedor' &&
+          asignacion.jrv_id !== null &&
+          asignacion.jrv_id !== undefined,
       );
+
     } catch (error: unknown) {
       console.error('Error al cargar las mesas asignadas:', error);
+
       this.mensajeError = this.obtenerMensajeError(error);
       this.asignaciones = [];
+
     } finally {
       this.cargando = false;
+
+      // Actualizar la vista cuando termine la consulta.
+      this.cdr.detectChanges();
     }
   }
 
   private obtenerMensajeError(error: unknown): string {
-    if (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string') {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'message' in error &&
+      typeof error.message === 'string'
+    ) {
       return error.message;
     }
 
