@@ -1,3 +1,4 @@
+
 import { Component, inject } from '@angular/core';
 import { IonApp, IonRouterOutlet, IonIcon } from '@ionic/angular';
 import { addIcons } from 'ionicons';
