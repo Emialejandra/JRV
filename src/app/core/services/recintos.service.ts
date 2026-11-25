@@ -22,18 +22,62 @@ export class RecintosService {
     private supabase: SupabaseService
   ) {}
 
- async obtenerRecintos() {
-  return await this.supabase.client
-    .from('recintos')
-    .select('*')
-    .order('nombre');
-}
+  async obtenerRecintos() {
+    const { data, error } = await this.supabase.client.functions.invoke(
+      'recintos-api',
+      { body: { action: 'listar' } }
+    );
 
-async crearRecinto(recinto: Recinto) {
-  return await this.supabase.client
-    .from('recintos')
-    .insert([recinto])
-    .select()
-    .single();
-}
+    if (error) {
+      return {
+        data: null,
+        error: new Error(
+          data?.error?.message || error.message || 'No se pudieron cargar los recintos.'
+        )
+      };
+    }
+    if (data?.success === false) {
+      return {
+        data: null,
+        error: new Error(data.error?.message || 'No se pudieron cargar los recintos.')
+      };
+    }
+
+    return { data: data?.data ?? [], error: null };
+  }
+
+  async crearRecinto(recinto: Recinto) {
+    const { data, error } = await this.supabase.client.functions.invoke(
+      'recintos-api',
+      {
+        body: {
+          action: 'crear',
+          parroquia_id: recinto.parroquia_id,
+          nombre: recinto.nombre,
+          direccion: recinto.direccion,
+          referencia: recinto.referencia,
+          cantidad_jrv: recinto.capacidad_jrv,
+          latitud: recinto.latitud,
+          longitud: recinto.longitud
+        }
+      }
+    );
+
+    if (error) {
+      return {
+        data: null,
+        error: new Error(
+          data?.error?.message || error.message || 'No se pudo crear el recinto.'
+        )
+      };
+    }
+    if (data?.success === false) {
+      return {
+        data: null,
+        error: new Error(data.error?.message || 'No se pudo crear el recinto.')
+      };
+    }
+
+    return { data: data?.data ?? null, error: null };
+  }
 }

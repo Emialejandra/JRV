@@ -91,8 +91,6 @@ export class CambioPasswordPage {
         try {
             await this.authService.cambiarPassword(password);
 
-            await this.authService.marcarPrimerAccesoCompletado();
-
             this.mensajeExito =
                 'Contraseña actualizada correctamente.';
 
