@@ -1,4 +1,3 @@
-
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -22,7 +21,7 @@ import {
   IonText,
   IonNote,
   IonInput,
-  IonButton
+  IonButton,
 } from '@ionic/angular';
 
 import { Recinto } from '../../../core/models/recinto.model';
@@ -57,13 +56,12 @@ import { TerritorioService } from '../../../core/services/territorio.service';
     IonText,
     IonNote,
     IonInput,
-    IonButton
+    IonButton,
   ],
   templateUrl: './recintos.page.html',
-  styleUrls: ['./recintos.page.scss']
+  styleUrls: ['./recintos.page.scss'],
 })
 export class RecintosPage implements OnInit {
-
   provincias: Provincia[] = [];
   cantones: Canton[] = [];
   parroquias: Parroquia[] = [];
@@ -92,13 +90,13 @@ export class RecintosPage implements OnInit {
     parroquia_id: null as number | null,
     capacidad_jrv: null as number | null,
     latitud: null as number | null,
-    longitud: null as number | null
+    longitud: null as number | null,
   };
 
   constructor(
     private recintosService: RecintosService,
-    private territorioService: TerritorioService
-  ) { }
+    private territorioService: TerritorioService,
+  ) {}
 
   async ngOnInit(): Promise<void> {
     await this.cargarDatosIniciales();
@@ -107,7 +105,6 @@ export class RecintosPage implements OnInit {
   // ==========================================
   // CARGAR INFORMACIÓN INICIAL
   // ==========================================
-
 
   async cargarDatosIniciales(): Promise<void> {
     this.cargando = true;
@@ -134,7 +131,6 @@ export class RecintosPage implements OnInit {
 
       console.log('Recintos:', this.recintos);
       console.log('Total de recintos:', this.recintos.length);
-
     } catch (error: any) {
       console.error('Error cargando información:', error);
       this.mensajeError = error.message || 'No se pudo cargar la información.';
@@ -146,13 +142,10 @@ export class RecintosPage implements OnInit {
     }
   }
 
-
   // FILTROS TERRITORIALES
 
   async cambiarProvincia(valor: number | null): Promise<void> {
-
-    this.provinciaSeleccionada =
-      valor == null ? null : Number(valor);
+    this.provinciaSeleccionada = valor == null ? null : Number(valor);
 
     this.cantonSeleccionado = null;
     this.parroquiaSeleccionada = null;
@@ -169,44 +162,30 @@ export class RecintosPage implements OnInit {
     this.cargandoTerritorio = true;
 
     try {
-
-      this.cantones = await this.territorioService
-        .obtenerCantones(this.provinciaSeleccionada) as Canton[];
+      this.cantones = (await this.territorioService.obtenerCantones(this.provinciaSeleccionada)) as Canton[];
 
       const resultados = await Promise.all(
-        this.cantones.map(canton =>
-          this.territorioService.obtenerParroquias(canton.id)
-        )
+        this.cantones.map((canton) => this.territorioService.obtenerParroquias(canton.id)),
       );
 
       this.parroquias = resultados.flat() as Parroquia[];
-
     } catch (error: any) {
-
       console.error('Error al cargar territorio:', error);
 
-      this.mensajeError =
-        error?.message || 'No fue posible cargar los filtros territoriales.';
-
+      this.mensajeError = error?.message || 'No fue posible cargar los filtros territoriales.';
     } finally {
-
       this.cargandoTerritorio = false;
-
     }
   }
 
   cambiarCanton(valor: number | null): void {
-
-    this.cantonSeleccionado =
-      valor == null ? null : Number(valor);
+    this.cantonSeleccionado = valor == null ? null : Number(valor);
 
     this.parroquiaSeleccionada = null;
   }
 
   cambiarParroquia(valor: number | null): void {
-
-    this.parroquiaSeleccionada =
-      valor == null ? null : Number(valor);
+    this.parroquiaSeleccionada = valor == null ? null : Number(valor);
   }
 
   // ==========================================
@@ -214,62 +193,37 @@ export class RecintosPage implements OnInit {
   // ==========================================
 
   get parroquiasDisponibles(): Parroquia[] {
-
     if (this.cantonSeleccionado === null) {
       return [];
     }
 
-    return this.parroquias.filter(
-      parroquia =>
-        Number(parroquia.canton_id) === this.cantonSeleccionado
-    );
+    return this.parroquias.filter((parroquia) => Number(parroquia.canton_id) === this.cantonSeleccionado);
   }
 
   get recintosFiltrados(): Recinto[] {
-
     let resultado = [...this.recintos];
 
     if (this.provinciaSeleccionada !== null) {
+      const idsParroquias = new Set(this.parroquias.map((parroquia) => Number(parroquia.id)));
 
-      const idsParroquias = new Set(
-        this.parroquias.map(parroquia => Number(parroquia.id))
-      );
-
-      resultado = resultado.filter(
-        recinto => idsParroquias.has(Number(recinto.parroquia_id))
-      );
+      resultado = resultado.filter((recinto) => idsParroquias.has(Number(recinto.parroquia_id)));
     }
 
     if (this.cantonSeleccionado !== null) {
+      const idsParroquias = new Set(this.parroquiasDisponibles.map((parroquia) => Number(parroquia.id)));
 
-      const idsParroquias = new Set(
-        this.parroquiasDisponibles.map(parroquia => Number(parroquia.id))
-      );
-
-      resultado = resultado.filter(
-        recinto => idsParroquias.has(Number(recinto.parroquia_id))
-      );
+      resultado = resultado.filter((recinto) => idsParroquias.has(Number(recinto.parroquia_id)));
     }
 
     if (this.parroquiaSeleccionada !== null) {
-
-      resultado = resultado.filter(
-        recinto =>
-          Number(recinto.parroquia_id) === this.parroquiaSeleccionada
-      );
+      resultado = resultado.filter((recinto) => Number(recinto.parroquia_id) === this.parroquiaSeleccionada);
     }
 
     const texto = this.busqueda.trim().toLowerCase();
 
     if (texto) {
-
-      resultado = resultado.filter(recinto => {
-
-        const contenido = [
-          recinto.nombre,
-          recinto.direccion ?? '',
-          recinto.referencia ?? ''
-        ].join(' ').toLowerCase();
+      resultado = resultado.filter((recinto) => {
+        const contenido = [recinto.nombre, recinto.direccion ?? '', recinto.referencia ?? ''].join(' ').toLowerCase();
 
         return contenido.includes(texto);
       });
@@ -283,14 +237,12 @@ export class RecintosPage implements OnInit {
   // ==========================================
 
   abrirFormulario(): void {
-
     this.mostrarFormulario = true;
     this.mensajeError = '';
     this.mensajeExito = '';
   }
 
   cancelarFormulario(): void {
-
     this.mostrarFormulario = false;
 
     this.nuevoRecinto = {
@@ -300,12 +252,11 @@ export class RecintosPage implements OnInit {
       parroquia_id: null,
       capacidad_jrv: null,
       latitud: null,
-      longitud: null
+      longitud: null,
     };
   }
 
   async guardarRecinto(): Promise<void> {
-
     this.mensajeError = '';
     this.mensajeExito = '';
 
@@ -320,27 +271,32 @@ export class RecintosPage implements OnInit {
     }
 
     if (
-      this.provinciaSeleccionada === null ||
-      this.cantonSeleccionado === null
+      !Number.isInteger(this.nuevoRecinto.capacidad_jrv) ||
+      this.nuevoRecinto.capacidad_jrv === null ||
+      this.nuevoRecinto.capacidad_jrv < 1 ||
+      this.nuevoRecinto.capacidad_jrv > 500
     ) {
-      this.mensajeError =
-        'Selecciona primero la provincia y el cantón.';
+      this.mensajeError = 'Ingresa una cantidad de JRV entre 1 y 500.';
+      return;
+    }
+
+    if (this.provinciaSeleccionada === null || this.cantonSeleccionado === null) {
+      this.mensajeError = 'Selecciona primero la provincia y el cantón.';
       return;
     }
 
     this.guardando = true;
 
     try {
-
       const recinto: Recinto = {
         nombre: this.nuevoRecinto.nombre.trim(),
         parroquia_id: Number(this.nuevoRecinto.parroquia_id),
         direccion: this.nuevoRecinto.direccion.trim(),
         referencia: this.nuevoRecinto.referencia.trim(),
-        capacidad_jrv: this.nuevoRecinto.capacidad_jrv ?? undefined,
+        capacidad_jrv: this.nuevoRecinto.capacidad_jrv,
         latitud: this.nuevoRecinto.latitud ?? undefined,
         longitud: this.nuevoRecinto.longitud ?? undefined,
-        activo: true
+        activo: true,
       };
 
       const respuesta = await this.recintosService.crearRecinto(recinto);
@@ -355,20 +311,16 @@ export class RecintosPage implements OnInit {
 
       // Actualizar listado
       await this.cargarDatosIniciales();
-
     } catch (error: any) {
-
       console.error('Error al registrar recinto:', error);
 
-      this.mensajeError =
-        error?.message ||
-        'No fue posible registrar el recinto. Verifica los permisos.';
-
+      this.mensajeError = error?.message || 'No fue posible registrar el recinto. Verifica los permisos.';
     } finally {
-
       this.guardando = false;
-
     }
   }
 
+  obtenerNombreProvincia(provinciaId?: number): string {
+    return this.provincias.find((provincia) => Number(provincia.id) === Number(provinciaId))?.nombre ?? 'Provincia';
+  }
 }

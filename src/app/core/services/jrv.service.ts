@@ -38,6 +38,7 @@ export class JrvService {
       .select('recinto_id')
       .eq('perfil_id', usuario.data.user.id)
       .eq('activo', true)
+      .eq('tipo_asignacion', 'coordinador_recinto')
       .not('recinto_id', 'is', null)
       .limit(1)
       .maybeSingle();

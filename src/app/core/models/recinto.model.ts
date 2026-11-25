@@ -8,5 +8,8 @@ export interface Recinto {
   longitud?: number;
   capacidad_jrv?: number;
   activo: boolean;
+  provincia_id?: number;
+  canton?: { id: number; nombre: string } | null;
+  parroquia?: { id: number; nombre: string; canton_id: number } | null;
   created_at?: string;
 }

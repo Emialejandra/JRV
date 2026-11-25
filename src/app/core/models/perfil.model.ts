@@ -15,4 +15,5 @@ export interface Perfil {
   primer_acceso: boolean;
   created_at?: string;
   updated_at?: string;
+  email?: string;
 }
